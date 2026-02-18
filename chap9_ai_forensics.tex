@@ -1,0 +1,183 @@
+\chapter{AI incident response and forensics} \label{chap:ai_forensics}
+
+\section{Incident response in AI systems}
+
+Incident response (IR) is a structured process in which mature organizations follow prescribed steps in response to incidents. Incidents are events leading to service interruption, data loss or other negative consequences and subsequent unwanted impact.
+
+
+\subsection{Incident response basics}
+
+According to the SANS Institute \citep{sans_ir_2026} the IR process consists of the following seven well-defined steps:
+
+\begin{enumerate}
+    \item \textbf{Preparation.} IR roles defined and team set up. Incident Response Plan (IRP) and playbooks (repeatable step-by-step procedures) established. 
+
+    \item \textbf{Identification.} Anomaly and/or incident detection and severity classification according to the IR Plan. Determine incident impact.
+
+    \item \textbf{Containment.} Isolate the affected elements of the information system. Determine short-term and long-term actions to minimize impact.
+
+    \item \textbf{Eradication.} Remove malware and other malicious artefacts deployed by the adversaries. Patch affected systems. Root cause analysis. 
+
+    \item \textbf{Recovery.} Restore information system to operational state from backups or via other means. Increase monitoring to identify residual adversary activity or remaining vulnerabilities.
+
+    \item \textbf{Lessons Learned.} Perform post-incident review to identify IR strengths and weaknesses. Update IR plan and playbooks.
+
+\end{enumerate}
+
+The actors usually involved in the IR process and their roles are summarized in Table \ref{tab:sans_ir_actors}.
+
+\noindent%
+
+\begin{table}[h!]
+\label{tab:sans_ir_actors}
+
+\caption{SANS incident response process and actors}
+\begin{tabular} { |c|c|c|c|c|c| }
+
+\hline
+Actor \cr / Phase & IR lead & IT & Legal rep. & Comms. & Mgmt \\
+\hline
+Preparation & \textcolor{green}{Implement} & \textcolor{orange}{Advise} & \textcolor{orange}{Advise} & \textcolor{orange}{Advise} & \textcolor{violet}{Owner} \\
+\hline
+Identification & \textcolor{violet}{Owner} & \textcolor{green}{Implement} & \textcolor{green}{Implement} & \textcolor{green}{Implement} & \textcolor{green}{Implement} \\
+\hline
+Containment & \textcolor{violet}{Owner} & \textcolor{green}{Implement} & Informed & Informed & Informed \\
+\hline
+Eradication & \textcolor{violet}{Owner} & \textcolor{green}{Implement} & Informed & Informed & Informed \\
+\hline
+Recovery & \textcolor{violet}{Owner} & \textcolor{green}{Implement} & Informed & Informed & Informed \\
+\hline
+Lessons \cr learned & \textcolor{green}{Implement} & \textcolor{orange}{Advise} & \textcolor{orange}{Advise} & \textcolor{orange}{Advise} & \textcolor{violet}{Owner} \\
+\hline
+
+
+\end{tabular}
+\end{table}
+
+Management owns and drivers the preparation and lessons learned phases, with advice and/or feedback provided by all other actors. The middle phases are owned and driven by the lead incident response expert, who can be an employee or a consultant hired for this purpose only. System administrators perform the operational activities in contain, eradication and recovery. The organization's legal representative ensures that the IR process is aligned with all relevant laws and regulations, as well as communicates with law enforcement and regulatory agencies. The communications officers communicate with partners, customers, the public and other relevant stakeholders. It is important to note that all here-listed stakeholders, employees, contractors and guests should participate in incident identification - that component is implemented by everybody!
+
+It is important to note, that the IR process builds on efficient situational awareness, which is usually based on well-designed security monitoring. IR team might be collocated with the Security Operations Center (SOC), but it consists of professionals of more varied backgrounds.
+
+
+\subsection{Incidents in AI systems}
+
+Microsoft Tay chatbot was one of the first AI systems involved in a widely publicized AI incident in 2016 \citep{tay_chatbot_2016}. When the chatbot started posting racist, sexist, and inflammatory tweets within hours after its launch, Microsoft implemented a (probably) not-yet well-structured incident response in three distinct stages: (1) immediate system shutdown, (2) public apology, as well as (3) long-term structural changes to the company's AI development process and the setup of the AI, Ethics, and Effects in Engineering and Research (AETHER) committee. These steps can be loosely mapped to containment, recovery (in the form of a public apology) and lessons learned via the structural changes to the AI research and operations policies of a large company.
+
+While the impact of the Tay chatbot incident was limited to cyberspace, the wider acceptance of diverse AI-based solutions can also have impact in the physical space. Tesla and other carmakers face legal challenges and uncertainty in their deployment of AI-based semi-autonomous driving systems after a number of fatal accidents caused by autopilots \citep{rice_2019_driverless_tesla_challenges}. It is also important to mention, that in their cases, the immediate incident response must also be tied to (and not just followed up by) a detailed AI forensics analysis to identify what went wrong, improve AI future systems and potentially avoid significant legal and financial impact on AI developers. We discuss AI forensics in the latter half of this chapter.
+
+
+\subsection{AI incident response process}
+
+Let us consider (1) the Tay chatbot incident, (2) a car crash caused by an autopilot error, and (3) a theoretical failure of an automated production line caused by an AI system making a bad decision, which leads to equipment damage (e.g., conveyor belts and robots) and multiple days of interrupted manufacturing plant operation. We can consider all three as incidents involving AI in operational use. 
+
+We use these three incidents as starting points to formalize the additional, AI system-specific activities added to the SANS IR framework, which are necessary to properly respond to novel incidents involving operational AI.
+
+\begin{enumerate}
+    \item \textbf{Preparation.} The organization-wide risk analysis must incorporate AI risks. The IRP needs to specify activities executed in response to unwanted events involving AI. It is important to document and exercise playbooks that are designed to respond to AI failures.
+    
+    \item \textbf{Identification.} Although our three incidents are easily identified by the public, police or plant engineers, other AI-related failures might not be as visible. For example, it is necessary to detect if an AI system is biased e.g. a medical AI fails to properly handle diversity (race, age, gender). It is therefore important to continuously update the detection systems and policies in all AI-enhanced systems. It is also important to be able to precisely determine impact and separate the contribution of the AI subsystem to any harm caused. In the autonomous car accident the crash might be entirely attributed to the autopilot, while in the production plant failure scenario the situation might not be that clear and the failure might be caused by a combination of events leading to erroneous AI operation (e.g. human error, sensor failure, actuator malfunction).
+    
+    \item \textbf{Containment.} The system operator needs to prescribe short- and long-term actions for all affected AI-enhanced systems. It is important to define the types of incidents and impact which require complete AI system shutdown as well as the length of shutdown. In Tay's case the shutdown was permanent, whereas other systems might be taken back online once additional guardrails are deployed. The IRP should also contain a substitute system to be brought online instead of the AI while it is offline. Complete AI dependance should be avoided and a Plan B must exist.
+    
+    \item \textbf{Eradication.} The root cause analysis of AI incidents is based on a well-defined AI forensics process. All malicious inputs, configuration files, libraries or models deployed by cyber adversaries must be collected and stored as evidence before being removed from the affected systems.
+    
+    \item \textbf{Recovery.} Recovery in AI systems might require thinking on a different, often longer timescale, as substitute AI models and libraries might not be available at the time of an incident. All current and previous versions of AI models and elements of their underlying infrastructure must be backed up to be able to restore the system to the last known good configuration. Ideally, fail-safe models and additional guardrails should be created as part of the IRP and be available in this phase. Increased monitoring of AI systems should also be performed to ensure that the recovered system behaves in line with its specification (see Section \ref{section:AI_monitoring} for details).
+    
+    \item \textbf{Lessons learned.} The lessons learned in the context of AI systems should also be considered on a longer scale, as 'lessons' are often not as simple as deploying a more sensitive endpoint protection solution or providing additional training to employees. On the contrary, in AI systems it might be necessary to acquire additional training data, switch to a different model architecture, start training from scratch or from a different foundational model. All these processes might take considerably longer time compared to failures in traditional, non AI-enhanced information systems. In the worst case, it might be necessary to take the AI system offline or even completely abandon AI use in a specific context.
+    
+\end{enumerate}
+
+In general, the IR processes prescribed by leading information security knowledge providers (like the SANS Institute) remain valid, but AI system operators need to consider AI-specific activities in each framework phase. Exercising playbooks or conducting table top exercises (TTX) also remain must-haves.
+
+
+\section{AI forensics defined}
+
+\subsection{The brief history of forensics science}
+
+Forensic science, the application of scientific methods to legal problems, boasts a rich history spanning centuries, evolving from rudimentary observations to highly sophisticated analyses. Early attempts at applying scientific principles to legal matters are evident in ancient civilizations. As early as the 3rd century BCE, the Chinese text Xi Yuan Ji Lu (translated as Washing Away of Wrongs) detailed methods for distinguishing drowning from strangulation and examining wounds, marking a nascent form of forensic pathology (\cite{song_forensics_washing_away_1981}). Similarly, the Romans utilized concepts of circumstantial evidence and medical opinions in legal proceedings (\cite{kirk_forensics_crime_1953}).
+
+The medieval and early modern periods saw sporadic, unscientific efforts. However, the Enlightenment and the Scientific Revolution laid the groundwork for a more systematic approach. The 18th century witnessed significant developments in toxicology. Mathieu Orfila, often considered the "father of modern toxicology," published Traité des poisons in 1814, establishing forensic toxicology as a legitimate scientific discipline and methods for detecting poisons in tissues (\cite{michaleas_forensics_mathieu_toxicology_2022}).
+
+The 19th century was a pivotal era for the formalization of forensic science. In 1835, Henry Goddard used bullet comparison to link a bullet to a specific mold, an early application of forensic ballistics (\cite{fisher_forensics_intro_2009}). Alphonse Bertillon, a French police officer, developed anthropometry in 1879, a system of bodily measurements for criminal identification, which was a dominant method before fingerprinting (\cite{guillo_on_bertillon_antropomorph_2008}; \cite{cole_suspect_identities_2009}). However, the superior reliability of fingerprinting soon overshadowed Bertillonage. Sir Francis Galton's extensive research, published in Finger Prints (1892), established the uniqueness and permanence of fingerprints, laying the foundation for modern dactyloscopy (\cite{galton_forensics_fingerprints_1892}). The first use of fingerprints in a criminal case is often attributed to Juan Vucetich in Argentina in 1892 (\cite{caplan_forensics_fingerprints_1990}).
+
+The turn of the 20th century saw the establishment of the first forensic science laboratories. Dr. Edmond Locard, a French criminologist, founded the world's first crime laboratory in Lyon in 1910. He articulated the seminal "Locard's Exchange Principle", stating that "every contact leaves a trace," emphasizing the transfer of evidence between perpetrator and scene (\cite{locard_forensics_criminelle_1920}). This principle became a cornerstone of trace evidence analysis. In the United States, August Vollmer established the first crime lab in the LAPD in 1923 (\cite{gardner_forensics_usa_2022}).
+
+The latter half of the 20th century was marked by revolutionary scientific advancements. The development of DNA fingerprinting by Alec Jeffreys in 1984 transformed forensic biology, enabling highly precise individual identification from minute biological samples (\cite{jeffreys_forensics_dns_1985}). This technology significantly impacted cold cases and wrongful conviction exonerations. 
+
+
+\subsection{The digital forensic process}
+
+The discipline of digital forensics, the process of identifying, preserving, analyzing, and presenting digital evidence in a legally admissible manner, is a relatively young but rapidly evolving field, inextricably linked to the proliferation of computer technology. Its origins trace back to the nascent days of personal computing and the emergence of cybercrime in the 1980s. Early incidents of computer misuse, such as unauthorized access and data manipulation, highlighted the critical need for specialized techniques to investigate electronic artifacts (\cite{casey_forensics_digital_2011}).
+
+In these nascent stages, law enforcement agencies lacked standardized procedures and tools. Investigations often involved simply seizing computers and attempting to manually examine data, a process prone to errors and lacking legal validity. The mid-1980s saw the initial development of specialized programs, often custom-built, to copy data without altering the original, marking the foundational principle of data integrity in digital forensics (\cite{sammes_forensic_computing_2007}). This period also saw the rise of the first dedicated "computer crime" units within police forces, recognizing the unique challenges posed by digital evidence.
+
+The 1990s represented a period of significant formalization and growth. The increasing commercialization of the internet and the rise of personal computers in homes led to an explosion of cybercrime, including credit card fraud, child exploitation, and corporate espionage. This necessitated a more structured approach to digital investigations. Key developments included the establishment of specialized training programs and the gradual consensus on best practices for evidence handling. The Scientific Working Group on Digital Evidence (SWGDE), formed in the late 1990s, played a crucial role in developing guidelines and standards for the field, aiming to ensure the reliability and admissibility of digital evidence in court (\cite{pollitt_forensics_history_2010}). Academic contributions also began to emerge, laying theoretical groundwork for digital evidence analysis and the principle of non-alteration.
+
+The turn of the millennium witnessed the rapid advancement of commercial digital forensics tools. Software such as EnCase and FTK (Forensic Toolkit) emerged, providing investigators with more automated and comprehensive capabilities for data acquisition, analysis, and reporting. These tools helped streamline investigations, making the process more efficient and standardized. The growth of the internet also led to the distinct sub-discipline of network forensics, focusing on capturing and analyzing network traffic for evidence of intrusions or malicious activity (\cite{rizvi_forensics_network_2022}). Furthermore, the proliferation of mobile phones and other portable devices spurred the development of mobile forensics, addressing the unique challenges of extracting data from diverse mobile operating systems and hardware (\cite{barmpatsalou_forensics_mobile_2013}).
+
+In the 21st century, digital forensics continues to grapple with the relentless pace of technological change. Cloud computing, the Internet of Things (IoT), and increasingly sophisticated encryption present new frontiers and challenges for investigators. The sheer volume of data, coupled with the complexity of modern systems, necessitates innovative techniques, often incorporating automation and artificial intelligence, to efficiently identify and analyze relevant digital artifacts while maintaining the rigorous standards of legal admissibility (\cite{casey_forensics_digital_2011}).
+
+
+\subsection{AI forensics goals}
+
+Digital forensics experts might be called in to investigate incidents involving applied AI either when criminals use an AI system as part of their modus operandi, attack an AI system to reach their goals \citep{manasa2022forensics_attack_on_ai} or when an otherwise legitimate AI system makes incorrect decisions leading to harm \citep{edwards2021_ai_forensics}, either due to malfunction or unexpected inputs. Additionally, AI forensics experts might be asked to investigate the responsible and ethical use of AI e.g., algorithmic bias, data privacy, or interpretability of AI outputs.
+
+As we mentioned elsewhere, criminals might use AI to automate target and vulnerability identification, generate misleading text as part of their social engineering campaigns, as well as source code to exploit any identified vulnerabilities in the target systems. AI forensics experts will need tools and expertise to analyze all such unsolicited uses of modern AI tools. Deepfakes, namely fake video or audio materials which might mislead specific employees or the general public, are a specific concern and need to be detected and their use attributable to the actual perpetrators.
+
+Example incidents which might warrant the involvement of AI forensics experts can be, but are not limited to the following \citep{schneider2023towards_ai_forensics}:
+
+\begin{enumerate}
+    \item Deepfakes: Detect, attribute to perpetrators
+    \item Incidents in cyber-physical systems which operationalize AI.
+    \item Military AI incidents e.g., drone hitting civilian targets.
+    \item Malicious use of autonomous vehicles (drones?) with manipulated AI-based image recognition.
+\end{enumerate}
+
+\subsection{AI Forensics Goals}
+The specific goals of the AI forensics process involve at least the following \citep{baggili2019founding_ai_forensics}:
+
+\begin{enumerate}
+    \item \textbf{AI substrate forensics.} Examine the compute infrastructure used in AI training and operations (hardware and software)
+    \item \textbf{Dataset forensics.} Prove intentional manipulations e.g., backdoor insertion or data poisoning.
+    \item \textbf{Training process forensics.} Investigate the training process (algorithm, HPs, libs) especially when the AI misfires and causes harm.
+    \item \textbf{Model authentication.} Verify the authenticity of an AI model under investigation.
+    \item \textbf{Model malware analysis.} Analyze malicious infections of AI models.
+    \item \textbf{AI ballistics.} Prove who, when, how and on which computer trained/modified a model which was used in criminal activity.
+
+\end{enumerate}
+
+
+\subsection{Evidence}
+
+In addition to the usual evidence collected during digital forensics investigations, the inspection of AI-enabled systems can include the collection and safe storage of the following types of evidence \citep{losavio2023ai_forensic}:
+
+\begin{enumerate}
+    \item The AI model itself
+    \item Training data -- Any data used to learn or update model parameters
+    \item Validation data
+    \item Test data
+    \item Observational or monitoring data (discussed in the AI Security Monitoring section earlier)
+    \item Inputs received during AI operations
+    \item Outputs generated by the AI system
+\end{enumerate}
+
+
+\subsection{Challenges}
+There are unsolved challenges faced by digital forensics experts who investigate failures or criminal acts involving the use of AI \citep{jeong2020ai_security_and_forensics}.
+
+The AI system involved in cybercrime might not be accessible to law enforcement. Possible examples are deepfake generation models on a remote infrastructure or a physical attack with an AI-steered drone which is destroyed during the attack and cannot be investigated. A partial solution to these challenges might be the use of similar AI systems if they are available e.g, same device with same AI.
+
+Additionally, if the AI makes incorrect decisions which lead to incidents in the physical space, the actual inputs which triggered the course of actions leading to the incident might not be available. In such situations the investigators might be required to generate similar samples or investigate many different possible inputs.
+
+The access level available during the AI forensics process can be any of the below:
+\begin{itemize}
+    \item White box: Source code available
+    \item Grey box: Model internals observable -> Investigator checks reaction to malicious inputs
+    \item Black box: Only (input, output) pairs -> Investigator repeats inputs leading to incident (if available)
+\end{itemize}
+
+
+%\bibliographystyle{splncs04}
+\bibliographystyle{apalike}
+
+\bibliography{bibliography}

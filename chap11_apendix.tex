@@ -1,0 +1,713 @@
+
+%\appendixpage
+%\noappendicestocpagenum
+%\addappheadtotoc
+
+\chapter{P}
+
+\chapter{FL Poisoning}
+
+\cite{bouacida2021vulnerabilities} IEEE
+
+
+
+\cite{xia2023poisoning} Survey 2023
+
+classfication:
+targeted, semi-targeted, and unargeted poisoning
+and data and model p.
+
+defenses:
+model analysis, byzantine robustness aggregation, and verification- based approaches.
+
+
+Data poisoning:
+first attacks \cite{biggio2012poisoning} label flipping for SVM.
+(not available IEEE \cite{li2020preserving})
+
+(\cite{MitigatingDataPoisoningAttack2021} )he work in [5] pointed out that dirty-label data poisoning attacks tend to produce high misclassifications in deep learning processes, with up to 90\%, when an adversary introduces relatively few dirty-label samples (50).
+Label-flipping [7] and backdoor attacks [8], [5] can be detected by Robust losses [9] and anomaly detection [10] but these need access to data itself.
+- their method is tested for text mining
+
+
+Clean label vs dirty label attack : clean: attacker cannot modify label of the datapoints due to verification process as in \cite{MitigatingDataPoisoningAttack2021} 
+
+
+Model poisoning: manipulate the parameters and upload the malicious model at aggregation.
+
+
+\paragraph{Goals:} poisoning might have various goals (according to \cite{bhagoji2019analyzing}):
+\begin{itemize}
+    \item \textbf{targeted attacks} aims at degrading the performance of the model on one specific task, as misclassifying given elements of one class as other one. as backdoor attacks. Adversarial objective:
+    \begin{align}
+        \mathcal{A}(\mathcal{D}_m\cup\mathcal{D}_{text{aux}})=\max_{\textbf{w}_G^t}\sum_{i=1}^r\mathbbold{1}[f(\mathbf{x}_i;\textbf{w}_G^t)=\tau_i]\label{eq:adv_obj}
+    \end{align}
+    for ${x_i}^r_{i=1}$ \textit{auxiliary data} with true labels ${y_i}^r_{i=1}$, that aimed to be classified to ${\tau_i}^r_{i=1}$ 
+    \item \textbf{untargeted} poisoning attacks aiming at simply degrade the performance of the model or preventing convergence
+\end{itemize}
+
+
+
+\paragraph{Stealthiness:} According to \cite{bhagoji2019analyzing},
+to detect malicious updates, there is 2 critical property to check
+\begin{itemize}
+\item \textbf{Checking accuracy} if validation accuracy of the global model updated  only by client $i$  (that is $w_i^t=w_G^{t-1}+\delta^t_i$) is much worse, than aggregating all the other updates (($w_{G\setminus i}^t=w_G^{t-1}+\sum_i\delta^t_i$) than $i$ can be flagged as anomalous. Based on that, to be chosen for using a clients update the following type of condition might be used:
+\begin{align}
+    \sum_{\{x_j,y_i\}\in \mathcal{D}_{\text{test}}}\mathbbold{1}[f(x_j;q_{D\setminus i}^t)=y_i]-\mathbbold{1}[f(x_j;q_i^t)=y_i]<\gamma_t
+\end{align},
+for threshold $\gamma_t$ defined by he server
+
+\item \textbf{statistics of update vectors}
+pairwise distances between an update and the rest of the updates indicates how different it is from the rest, as it has been introduced in Krum \cite{blanchard2017machine}
+
+For client $m$ we compute the range 
+\begin{align}
+R_m=[\min_{i\in[k]\setminus m}d(\delta^t_m,\delta^t_i),\max_{i\in[k]\setminus m}d(\delta^t_m,\delta^t_i)]\end{align}, 
+
+and $R^l_{\min,[k\setminus m]}$ minimum lower bound, and $R^u_{\max,[k\setminus m]}${maximum upper band of the ranges for the other agents among themselves. Then not to be flagged as anomalous, we need that
+\begin{align}
+\max\{|R^u_m-R^l_{\min,[k\setminus m]}|,|R^u_m-R^u_{\max,[k\setminus m]}|\}<\kappa_t
+\end{align}
+for threshold $\kappa_t$ defined by the server in each round. This captures that the distances of the examined clients update is not too different form that for any two other clients.
+
+Another way might be comparing the histogram of weight updates of various clients.
+
+%\begin{itemize}
+
+%    \item \textbf{size of update}
+%    \item \textbf{direction of update}
+%    \end{itemize}
+%\end{itemize}
+\cite{bhagoji2019analyzing} releases the objective of Eq. \ref{eq:adv_obj} (difficult combinatorial optimization) with cross-entropy loss, where automatic differentiation might be used. Also, the current global parameter vector $w_G^t$ is not available, and can only be influenced by the malicious update $\delta_m^t$. Thus optimization should be done on an estimate $\hat{w}_G^t$. the objective for the adversary at iteration $t$ thus:
+\begin{align}
+    \arg\min_{w_m^t}L(\{x_i,\tau_i\}_{i=1}^r,\hat{w}_G^t)\\
+    \text{s.t.} \hat{w}_G^t=g(\mathcal{I}_m^t)
+\end{align}
+where $g(\cdot)$ is an estimator for the result of the global model updates, based on all the available information at the attacker $I_m^t$. For the base case: $\hat{w}_G^t=w_G^{t-1}+\alpha_m\delta_m^t$ (other estimation methods also shown in \cite{bhagoji2019analyzing}), that is previous model shifted by the scaled  local update. To improve effect, the resulted \textit{Explicit boosting factor} $\lambda=\frac{1}{\alpha_m}$,, that result in an update that tries replace global model to the malicious local one.
+
+For \textbf{stealthy attack} modify the loss functions
+
+\begin{itemize}
+    \item improve validation accuracy on main task by adding: $L(\{x_i,y_i\}_{i=1}^{n_m},w_G^t)$ 
+    \item make the malicious update as similar to benign ones a possible by adding similarity constraint: $\rho||\delta^t_m-\bar{\delta}^{t-1}_{\text{benign}}||_2$, for $\bar{\delta}^{t-1}_{\text{benign}}=\sum_{i\in[k]\setminus m}\alpha_i\delta^{t-1}_i$, the average of benign updates from the last iteration  
+\end{itemize}
+\begin{align}
+    \arg\min_{w_m^t}\lambda L(\{x_i,\tau_i\}_{i=1}^r,\hat{w}_G^t)+L(\{x_i,y_i\}_{i=1}^{n_m},w_G^t)+\rho||\delta^t_m-\bar{\delta}^{t-1}_{\text{benign}}||_2
+\end{align}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/stealth_attack.png}
+    \caption{Stealthy model poisoning for CNN on Fashion MNIST. \cite{bhagoji2019analyzing}}. $\lambda=10$, and $\rho=1e^{-4}$
+    \label{fig:stealth}
+\end{figure}
+
+\textbf{Alternation minimization}, that is decoupling optimization w.r.t. attack performance and stealth, can be used to further improve performance. This is to ensure that the submitted gradient will be used in the global model update at the coordinator.
+
+For each epoch $i$ first optimize for adversarial objective and boost the update to get the malicious new model $\tilde{w}^{i,t}_m={w}^{i-1,t}_m +\lambda\delta^{i,t}_m$, which gets optimized w.r.t. the stealth objective. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/alternating_opt.png}
+    \caption{Alternating minimization attack with distance constraints for CNN on Fashion MNIST data. \cite{bhagoji2019analyzing}}. $\lambda=10$, and $\rho=1e^{-4}$, with $E_m=10$ local epochs per iteration.
+    \label{fig:alterating}
+\end{figure}
+
+\textbf{Byzantine resilient aggregation} methods are designed to ensure convergence of models that is they are effective against   \textit{ untargeted poisoning attacks}. All upates $\{\delta _i^t\}_{i=1}^n$
+
+\begin{itemize}
+    \item Krum \cite{blanchard2017machine}, assumes that form $n$ nodes maximum $f$ Byzantine, with $n\geq 2f+3   $. for each $\delta_i^t$ update $n-f-2$ closest other updates in terms of $L_p$ norm form the set $C_i$, and $S(\delta_i^t)=\sum_{\delta\in C_i}||\delta_i^t-\delta||_p$. Then $\delta_{\text{krum}}$ is the update with the lowest score, and the updates will be simply (\textbf{TODO} replacing update with the closest???)    $w_i^{t+1}=w_i^{t}+\delta_{\text{krum}}$
+    \item   \textbf{Coordinate-wise median}:\cite{} the update $\bar{\delta}^t=\text{coomed}\{\{\delta _i^t\}_{i=1}^n\}$.   
+\end{itemize}
+
+Both cases, \textbf{model poisioning attacks} are effective  for these as demonstrated in \cite{bhagoji2019analyzing}.
+
+in other cases the goal is to degrade the target models' performance in general.
+
+Poisoning can be done throught injecting malicious data into training set or by directly modifying the model parameters
+
+
+random noise by fake client \cite{cao2022mpaf} - baseline attacks
+\begin{itemize}
+    \item \textit{random attack}:$g_i^t=-\lambda\epsilon$, where $\epsilon$ is Gaussian noise
+    \item \textit{history attack}:
+malicious clients sends $-\lambda(w^t-w^{t-1})$, that is the opposite, of the expected benign update scaled up by $\lambda$ boosting factor. 
+\end{itemize}
+these baselines hat a rather limited effect when classical defenses such as \textit{trimmed-mean}\cite{yin2018byzantine} applied, that is largest and smallest values of each coordinates for the  update are removed. \cite{cao2022mpaf} argues that this because attack is not consistent in consecutive rounds. MPAF (Model Poisoning Attacks to Federated Learning based on Fake Clients) therefore picks a random base model $w'$ wirh a low enough performance and at each round pushes the updates in that direction, in order to minimize the distance between the final model and the malicious one during the training:
+\begin{align}
+    \min_{g_i^t;i\in[n+1,\dots,n+m],t\in[0,\dots,T-1]}||w^T-w'||
+\end{align}
+In order to achieve this, simply:
+\begin{align}
+    g_i^t=\lambda(w'-w^t)
+\end{align}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/MPAF.png}
+    \caption{Illustration of MPAF\cite{cao2022mpaf}. $w'$ is an attacker-chosen base
+model. $w^{t−1}$,$w^t$, and $w^{t+1}$ are the global models in round
+$t − 1$, $t$, and $t + 1$, respectively. $w^∗$ is the learnt global model
+without attack. The fake local model updates from the fake clients
+drag the global model towards the base model.}
+    \label{fig:mpaf}
+\end{figure}
+Decreases model performance at a great extent even when \textit{norm clipping}, and \textit{trimmed mean} is used
+
+\textbf{norm clipping}\cite{sun2019can} scaling down updates to a maximum norm of $M$
+\begin{align}
+    \frac{g}{\max(1,||g||_2/M)}
+\end{align}
+
+
+
+
+
+also to make sabotage more efficient - training with gradient ascent to get opposite update directions   \cite{sun2021data} \cite{shejwalkar2022back}
+
+utilizing DP to hide malicious noise injection: \cite{hossain2021desmp}
+
+ 
+
+iid data makes detection of the attack easier   
+
+problem of catastrophic forgetting -  persistent malicious updates- makes detection chances higher -
+
+mix malicious updates with a lot of legitimate ones\cite{nguyen2020poisoning }
+
+\cite{zhou2021deep} using redundant parameter space - that is not used and overwritten by updates
+alternating optimization (as in \cite{bhagoji2019analyzing},) for \textit{malicious} local model $L_m^{t+1}$:
+\begin{itemize}
+    \item main task:
+    \begin{align}
+        \arg\min_{\Theta^*}\mathcal{L}_M(\mathcal{D}_m,\Theta^*)+\rho_1||\Delta^{t+1}_m-\Delta^{t}_{\text{benign}}||_2
+        \end{align}
+        for $\mathcal{L}_m$ cross entropy loss, $\Delta^{t}_{\text{benign}}=G^t_{S^t\setminus m}-G^{t-1}_{S^{t-1}\setminus m}$ the benign clients averaged updates       
+    \item adversarial task - most neurons hardly changes during fine tuning (referring to continual learning:     \cite{shmelkov2017incremental}\cite{lee2017overcoming} \cite{li2019learn}\cite{aljundi2019task}  )
+
+    finding important neurons regarding the main task through computing the Hessian using local clean dataset to measure the direction and distance of the update (\cite{zenke2017continual}, \cite{kirkpatrick2017overcoming}, \cite{williams1992fast}), the higher the value in the Hessian, the more important the neuron is. Based on this , \textit{structural regulatization}:
+    \begin{align}
+        \arg\min_{\Theta^*}\mathcal{L}_M(\mathcal{D}_p,\Theta^*)+\rho_2\sum_{\theta_i\in \Theta^*}h_i(\Delta\theta_i)^2
+    \end{align}, for $h_i$ second derivative of the objective related to the main task, and $\Delta\theta_i$ the parameter update of the adversarial task 
+
+    \item update alternatingly optimize main ($\Delta_m$) and adv tasks($\Delta_p$), then boost malicious update $\frac{n}{\eta}$
+    \begin{align}
+        \Delta=\eta_1\Delta_m+\frac{n}{\eta}\Delta_p
+    \end{align}
+    
+\end{itemize}
+
+
+
+model poisoning introduces in \cite{bagdasaryan2020backdoor}./model replacement
+
+
+for replacing a global model $G^{t+1}$ with backdoored model $X$(trained on valid and attack data with \textit{ two task learning}) :
+\begin{align}
+    X=G^t+\frac{\eta}{n}\sum_{i=1}^m(L^{t+1}_1-G^t)
+\end{align}
+we have to solve 
+\begin{align}
+\tilde{L}^{t+1}_m=\frac{n}{\eta}X-(\frac{n}{\eta}-1)G^t\approx\frac{n}{\eta}(X-G^t)+G^t
+\end{align}
+
+where $\frac{n}{\eta}$ scales the attack in order to survive averaging.
+
+problem: the attacker might not be chosen for each round - \textit{catastrophic forgetting}\cite{kirkpatrick2017overcoming}  EWC loss from that work did not help but slowing learning rate during attacker training did some improvement
+
+if using SA cannot be detected otherwise attempts can be done to detect anomalies, but in the non-iid case,  \cite{bagdasaryan2020backdoor} also shows that the wide distribution of benign models updates makes attacker not seeming anomalous.
+
+\textit{constrain-and-scale}
+$L_{\text{model}}=\alpha L_{\text{class}}+(1-\alpha)L_{\text{ano}}$, where $L_{\text{model}}$ accuracy on main and backdoor task, and $L_{\text{ano}}$ any anomaly detection method
+
+\textit{train-and-scale} - some AD-s rely only on the magnitude of the update:
+$\gamma=\frac{S}{||X-G^t||_"}$, for the permitted magnitude $S$
+    
+
+ \cite{bagdasaryan2020backdoor} also introduces \textbf{semantic backdoors}- attacker chosen output for unmodified input.
+
+- often multiply the gradient's magnitude 
+model replacement: 
+\cite{xie2019dba}   
+\cite{sun2019can} - projected gradient ascent - in order to avoid detection projecting back the malicious update  on a ball
+\cite{zhang2020poisongan} -  generate datatset similar to benign clients using GAN. for attacking a single class G generates an example $x$ from a random noise input. if $x$ is classified by the D (global model) it will be added to attack training set, otherwise update D to create better examples.
+
+\cite{li2022learning} gradient inversion based method to learn data distribution of benign clients - simulation environment and reinforcement learning to adaptive attack
+
+defenses:
+\subsection{verification based methods} 
+\begin{itemize}
+\item TEE \cite{chen2020training}
+    \item GAN for prototyping clients dataset \cite{zhao2019pdgan} - anomaly detection methods in FL: 
+    \begin{itemize}
+        \item gradient distance detection \cite{fung2018mitigating} -optimization to bypass
+        \item model accuracy auditing - tracking the performance of the model on validation set:
+         \cite{zhao2019pdgan} proposes GAN to create this - they assume to have data from a couple of classes, and they generate the rest from client updates using: \cite{hitaj2017deep,
+} and \cite{wang2019beyond}
+
+when  accuracy of a local model is under a \textit{predefined} threshold, it is flagged as an attacker.
+    \end{itemize}
+    \item Deciding at clients -SVM
+\end{itemize}
+both way compromises privacy    
+- 
+
+
+
+\chapter{Some optimization based gradient leakage methods}
+
+Under some circumstances from the updates an adversary can reconstruct the data. 
+\section{Single data-point}\label{a:single_neuron}
+
+
+For single gradients a method is introduced in \cite{aono2017privacy}\cite{aono2017privacy1}. The update in  SGD training of NNs works in the following way ($\mathbf{w}$ parameter vector including bias vector $\mathbf{b}$): 
+\begin{align}
+    \mathbf{w}=\mathbf{w}-\eta\nabla_\mathbf {w}f
+\end{align}
+
+
+For a single neuron classifier with  $\mathbf{w}_k$ denoting the weights for the $k$th input  feature and $b$ the bias:
+(Here for squared loss, but works for cross-entropy as well )
+\begin{align}
+    \Delta\mathbf{w}_k&=\frac{\partial f(\mathbf{W},b,\mathbf{x},y)}{\partial \mathbf{w}_k}\\&=\frac{\partial\|\phi(\mathbf{Wx}+b)-y\|^2}{\partial \mathbf{w}_k}=2(\phi(\mathbf{Wx}+b)-y)\phi'(\mathbf{Wx}+b))\cdot x_k\\
+    \text{Where }&\frac{\partial \mathbf{Wx}+b}{\partial\mathbf{w}_k }=\frac{\partial \sum_{i=1}^d\mathbf{w}_i^T\mathbf{x}_i+b}{\partial\mathbf{w}_k }=x_k~~\text{for the last term}\\
+    \Delta b&=\frac{\partial f(\mathbf{W},b,\mathbf{x},y)}{\partial b}\\&=\frac{\partial\|\phi(\mathbf{Wx}+b)-y\|^2}{\partial  b}=2(\phi(\mathbf{Wx}+b)-y)\phi'(\mathbf{Wx}+b)\cdot 1
+\end{align}
+
+Thus one can notice, that dividing these two equations gives us back the value of the input at coordinate $k$: $x_k=\Delta \mathbf{w}_k/\Delta b$. %(the value of the actual gradient natureally can be scaled down by a learning rate $\eta$, but it is )
+
+This reconstruction method  has been tested for  single layer fully connected NNs (Figure \ref{fig:single_grad_attack} left image), and proven to be working, even if only part of the gradients is known by the server(middle image), or with weight regularized loss(rightmost image).
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/privacy_leakage.png}
+    \caption{Reconstruction from single gradient in fully connected NN \cite{aono2017privacy}}
+    \label{fig:privacy_leakage}
+\end{figure}
+
+On the other hand this method cannot be used for CNNs given the number of features are much higher than the number of features.
+
+Another method has been presented in \cite{ribeiro2020accuracy}, that works for CNNs as well, but also seems like they only recover a single image. In this the authors
+use a GAN to recover the update from a single client at a compromised server.
+
+
+\section{Deep leakage from Gradient (DLG)} \cite{zhu2019deep}(and improved deep leakage, iDLG\cite{zhao2020idlg}) uses a different method, namely they run optimization on the pixels of a randomly generated image (or text) matching the gradients on the random image to those  of the real data point.
+
+\section{Arbitrary architecture for single datum}
+Denoting the loss of a network with weights $\mathbf{W}$ on dataset $(\mathbf{X,y})$ as  $f(\mathbf{W},\mathbf{X},\mathbf{y})$: 
+%\begin{align}
+$$\nabla\mathbf{W}\myeq
+    \frac{\partial f(\mathbf{W},\mathbf{X},\mathbf{y})}{\partial \mathbf{W}}$$
+%\end{align}
+
+To reconstruct a single data point $\mathbf{x}$ then, starting from a random input ${\mathbf{x'}}$ and random target ${\mathbf{y'}}$ the following method can be used:
+
+\noindent for $t=1,\dots$:
+\begin{enumerate}
+    \item $\nabla{\mathbf{W}'}\gets \frac{\partial F(\mathbf{W},{\mathbf{x'}},\mathbf{y'})}{\partial \mathbf{W}}$
+    \item $\Delta \gets \|\nabla{\mathbf{W}'} -\nabla{\mathbf{W}} \|^2$
+    \item ${\mathbf{x'}}\gets{\mathbf{x'}}-\eta\frac{\partial \Delta}{\partial{\mathbf{x'}}}$
+    \item ${\mathbf{y'}}\gets{\mathbf{y'}}-\eta\frac{\partial \Delta}{\partial{\mathbf{y'}}}$
+\end{enumerate}
+
+
+\subsection{Label of single datum} The efficiency can be boosted by extracting the true label in a single step as it is proposed in iDLG \cite{zhao2020idlg}. When  To get the ground truth label (in case of $\mathbf{y}$ is \textit{one hot vector}) it is enough to find the output index of that has a negative gradient, as follows.
+
+Classification is usually trained via cross-entropy loss, where for the correct class $c$, and the logits $\mathbf{y}=[y_1,\dots]$:
+\begin{align}
+  f(x,c)  =-\log\frac{e^{y_c}}{\sum_je^{y_j}}.
+\end{align}
+Thus 
+\begin{align}
+    g_i&\myeq\frac{\partial f(x)} {\partial y_i}=-\frac{\partial \log e^{y_c}-\log\sum_je^{y_j}}{\partial x_i}\\
+    &=\left\{
+\begin{array}{lll}
+      -1+ \frac{e^{y_i}}{\sum_je^{y_j}}~&<0,~ \text{if}~ i=c \\
+      \frac{e^{y_i}}{\sum_je^{y_j}}~&>0,~ \text{otherwise.}
+\end{array} 
+\right. 
+\end{align}
+
+\cite{yin2021see} provides a method to recover the labels in a batch, however with the not too realistic restriction, that the classes might not repeat in the batch.
+
+
+
+Although this gradients w.r.t. to the output $\mathbf{y}(=\mathbf{a}^{(L)})$ cannot be seen from the update (we only update the weights, thus they are not included in the update), we still can compute it from the gradients for the weights that lead to the output $\nabla\mathbf{w}^{(L)}$. For the incoming weights of the $i$th output:
+\begin{align}
+    \nabla\mathbf{w}^{(L)}_i&=\frac{\partial f(x,c)}{\partial \mathbf{w}^{(L)}_i}=\frac{\partial f(x)} {\partial y_i}\cdot\frac{\partial y_i}{\partial \mathbf{w}^{(L)}_i}\\
+    &=g_i\cdot\frac{\partial(\mathbf{w}^{(L)}_i\mathbf{a}^{(L-1)}+b^{(L)}_i)}{\partial \mathbf{w}^{(L)}_i}\\
+    &=g_i\cdot \mathbf{a}^{(L-1)} 
+\end{align}
+
+The correct class then can be identified by picking the output, whose incoming weights has a gradient vector that pushes those in a different direction than the other:
+\begin{align}
+    c=i,~\text{iff}~ {\nabla\mathbf{w}^{(L)}_i}^T\cdot \nabla\mathbf{w}^{(L)}_j \leq 0, ~\forall j\neq i. 
+\end{align}
+
+
+
+\section{Reconstruction of a batch of data}
+The DLG method \cite{zhu2019deep} also reported to be working (the label guess of iDLG is not yet), when an aggregated gradient is given over a mini-batch of data points $\mathcal{B}=\{(\mathbf{x}_1,\mathbf{y}_1),\dots,(\mathbf{x}_b,\mathbf{y}_b)\}$:
+
+\begin{align}
+\nabla\mathbf{W}\myeq
+    \sum_{i=1}^b\frac{\partial f(\mathbf{W},\mathbf{x_i},\mathbf{y_i})}{\partial \mathbf{W}}
+\end{align}
+
+We can theoretically  do this even at the same time for all input, since the loss function is computed as the average of the losses, given all the data points in the batch. However it becomes less way less efficient, and converging very slowly.
+
+It has been proven more efficient to optimize a single data-point in each step:
+
+\noindent for $t=1,\dots$:
+\begin{enumerate}
+\item $j=t \mod b$
+    \item $\nabla{\mathbf{W}'}\gets \frac{\partial F(\mathbf{W},{\mathbf{x'}},\mathbf{y'})}{\partial \mathbf{W}}$
+    \item $\Delta \gets \|\nabla{\mathbf{W}'} -\nabla{\mathbf{W}} \|^2$
+    \item ${\mathbf{x'_j}}\gets{\mathbf{x'_j}}-\eta\frac{\partial \Delta}{\partial{\mathbf{x'_j}}}$
+    \item ${\mathbf{y'_j}}\gets{\mathbf{y'_j}}-\eta\frac{\partial \Delta}{\partial{\mathbf{y'_j}}}$
+\end{enumerate}
+
+The result of these method is illustrated in Figure \ref{fig:batch_attack}.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/DLG_batch.png}
+    \caption{Batch leakage \cite{zhao2020idlg}}
+    \label{fig:batch_attack}
+\end{figure}
+
+
+
+
+
+
+\section{Minimizing cosine distance} 
+
+In \cite{geiping2020inverting} the authors analyze the above methods with respect to their usability in different learning scenarios, and also make the following observations:
+ \begin{itemize}
+  \item The methods in \cite{aono2017privacy}\cite{aono2017privacy1} have limits for general NNs (few layers, non CNN etc)
+    \item DLG is reported in the paper to be working for batch sizes of $8$ and resolution of $64\times64$.
+
+     \item 
+
+  For $p$ number parameters and $d$ input pixel if $p<d$ reconstruction is as complex as image recovery from incomplete data. Even if $p>d$ non-linearities cause problems
+ 
+\item  For fully connected layers : input for those can always be computed analytically (assuming that grad $\neq 0$)
+
+ 
+  \end{itemize}
+ The main contribution of the work instead of euclidean matching $\arg\min_x\|\nabla_\theta f_\theta(x,y)-\nabla_\theta f_\theta(x^*,y)\|^2$ they  decompose  parameter gradients into norm magnitude and direction, where according to the authors magnitude captures the phase of training, that is, how far we are from the optimum.
+ 
+
+
+ 
+
+ 
+ \cite{geiping2020inverting} proposes the cost function for the optimizing the distance of the gradient to use cos distance, adding  total variance\cite{rudin1992nonlinear}($TV(x)$) as prior on the image:
+ 
+ \begin{align}
+     d(x,y)=\frac{\langle x,y\rangle}{\|x\|\|y\|}
+ \end{align}
+Thus the objective, that aims at finding images that lead to similar change in model prediction  as an unobserved ground truth image(this is equivalent to euclidean distance if the magnitude of both gradient is normalized to $1$):
+
+\begin{align}
+    \arg\min_{x\in[0,1]^p}     1-\frac{\langle \nabla_\theta f_\theta(x,y),\nabla_\theta f_\theta(x^*,y)\rangle}{\|\nabla_\theta f_\theta(x,y)\|\|\nabla_\theta f_\theta(x^*,y)\|}+\alpha TV(x)
+\end{align}
+
+This attack has no restriction on architecture, and works across multiple epoch training, or local gradient averaging up to 100 images. The method also works on trained networks as well where previous approaches might fail due to low magnitude of the gradients
+ 
+ Even if the averaged gradients are composed into update vector after  multiple epochs, they  still experience some leakage.
+
+%Other interesting works:
+%\cite{truong2021privacy},\cite{melis2018exploiting} 
+%(old attack, before \cite{zhu2019deep})
+
+
+
+
+\chapter{Linear layer leakage attacks}
+
+When a network starts with a fully connected layer, a single image $x_i$ can be reconstructed if it activates neuron $i$:
+
+\begin{align}
+    x_i=\frac{\delta L}{\delta W_i}/\frac{\delta L}{\delta B_i},\label{eq:lll}
+\end{align}
+with $\frac{\delta L}{\delta W_i}$denoting the weight gradient, and $\frac{\delta L}{\delta B_i}$ the bias gradient of the neuron (Appendix \ref{a:single_neuron}), that is a the main idea of many \textit{analytical attacks}.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/analyticFC.png}
+    \caption{When a neuron has been activated by a single input image (as at the orange neuron), the input image can be completely reconstructed analytically. If multiple input activated the neuron (blue one), the same method leads to the average of images. Source of Figure: \cite{zhao2024loki}}
+    \label{fig:analytic_fc_1}
+\end{figure}
+
+\noindent In order to utilize this observation for practical attacks, two questions arose:
+
+\begin{enumerate}
+    \item how can we ensure that only one image activates a neuron?
+    \item how can the attack be applied for various architectures?
+\end{enumerate}
+
+There have been several proposed to achieve this. The following methods are \textbf{mostly used for images}, some of them however might work on textual data as well.
+
+The main idea here is, that a  gradient with respect to the weights of a neuron will be non zero, if the neuron is activated, that is, in case of ReLU activation function ($\max(W_i^Tx+b_i,0)$), when $W_i^Tx+b_i>0$. The goal is therefore to achieve that one neuron will be activated by a single image.
+\section{Trap Weights}
+The first idea was utilizing \textit{trap weights}\cite{boenisch2023curious}, that  is, to initialize weights in such a  way, which decreases the probability of being activated. The method \cite{boenisch2023curious} proposes is the following for each neuron:
+\begin{enumerate}
+    \item initialize a randomly chosen half of the parameters from a Gaussian distribution;
+    \item assign to the second half of the weights the negative of the first ones.
+    \item scale down the positive weights:
+    \begin{align}
+        W_{ij}\gets W_{ij}\cdot c, \text{if } W_{ij}>0, \text{ with }c \in [0,1] 
+    \end{align}
+\end{enumerate}
+
+
+
+\section{Robbing the Fed}
+For image processing \cite{fowl2022robbingfeddirectlyobtaining} proposes an  \textit{imprint module}  that is a single fully connected layer implementing a binning method, whose purpose is to send each input data point in a separate bin, that corresponds to activating a single neuron. The binning here is achieved here by manipulating the bias weights for each neuron $i$ such:
+\begin{align}
+    b_i=-\Phi^{-1}\left(\frac{i}{k}\right),\label{eq:rtf_bias}
+\end{align}
+where $k$ is the number of bins, that is the number of neurons in the layer. 
+where $\Phi^{-1}$ is the inverse of a \textit{cumulative distribution function}, that describes some statistic of the data, for example the image brightness.
+When we initialize the input weights to $W_{ij}=\frac{1}{m}$, with $m$ being the dimension of the input, we can assume that with high probability a single image will fall in the brightness bin $[b_{j-1},b_j]$, that is equivalent with $W_j^Tx+b_j\in[0,1]$. From the optimization perspective when we use ReLU, that means each neuron is activated by images with the brightness corresponding to its bin and the images that has a higher brightness. Thus image $x$ might be reconstructed utilizing Equation \ref{eq:lll} after substracting the partial derivatives w.r.t. input and bias weigths of the next (higher brightness) neuron:
+
+\begin{align}
+    x_j=\frac{\nabla_{W_{(i,j)}}L-\nabla_{W_{(i+1,j)}}L}{\nabla_{b_{i}}L-\nabla_{b_{i+1}}L}
+\end{align}
+
+When multiple round of training is available as in FedAvg, then then $W$ drifts away with the multiple local updates. In the above method, as the bias weight increases, the more input point will affect the corresponding neuron.   
+
+To avoid this we can use a double sided threshold:
+\begin{align}
+f(x) =
+\begin{cases} 
+0 & \text{if } x \leq 0, \\
+x & \text{if } 0\leq x , \\
+1 & \text{if } 1\leq x .
+\end{cases}
+\end{align}
+
+This ensures a sparse activation pattern, since we expect only a single input to activate this function.
+
+(TODO is this true?) We do not want to change the weights too much, since that would cause input points potentially drifting out of their "assigned range" between the local epochs (as wights and biases get updated). Also, as the number if images grows, the ranges may shrink too much.
+
+To mitigate both this issues, one solution might be to rescale the parameters, for example: 
+
+\begin{align}
+    b_{i,new}&=-\frac{b_i}{\delta_i}\text{, where  } \delta_i=\phi^{-1}\left(\frac{i+1}{k}\right)-\phi^{-1}\left(\frac{i}{k}\right)=b_{i+1}-b_i\text{, and}\\
+    W_{i,new}&= W_i\cdot b_0, 
+\end{align}
+where $b_i$ is the original bias from Equation \ref{eq:rtf_bias}. 
+
+\section{Loki}
+The problem with RTF is that for each datapoints ot be leaked, there is another neuron necessary, that brings a serious scalability problem. The range of the utilized distribution remains the same, that leads to shrinking bin sizes, and the scaled gradients get larger.
+
+To overcome this, \cite{zhao2024loki} proposes a  new attack modul, that consists of a convolutional layer anfollowed two FC layers. The convolutional layer is used to push forward the image (3 channels (RGB) for identity, $3\times3$ kerles with $1$ as a \textit{key value(kv)} in the center, and $0$s elsewhere), and different filter triplets are assigned to different clients, thus ensuring the constant number of neurons in the following FC layers will be able to handle the load of multiple clients. These FC neurons are connected to all filters, and a given set of filters will be only used by a single client, thus enabling reconstruction of the input image from this subset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/loki.png}
+    \caption{Pushing the input forward with identity mapping in Loki \cite{zhao2024loki}. Each triplets are used to push inputs from a single client. Also, the weights from the triplets to neurons will be only used by that client.}     \label{fig:loki_1}
+\end{figure}
+
+The only issue left is the scaling factor $\nabla_{b_i}$ that is shared across all the clients. Instead of using these, the solution  might be normalizing the input weight:
+\begin{align}
+    x_{i,k}=\frac{\text{abs}\left(\frac{\partial L}{\partial W_{i,k}}-\frac{\partial L}{\partial W_{i+1,k}} \right)}{\max\left(\text{abs}\left(\frac{\partial L}{\partial W_{i,k}}-\frac{\partial L}{\partial W_{i+1,k}} \right)\right)}
+\end{align}
+where $x_{i,k}$ is the the $i$th data point at client $k$, and $W_{i,k}$ is the subset of the weight matrix $W$ that contains the weights going to neuron $i$ from the filters belonging to client $k$. 
+The second FC layer of the module is used to feed the input of the module forward to the legitimate "learning network". 
+
+When doing FedAvg, while the distance between biases does not need to decrease as in RTF, thea learning rate and  minibatch size still affect the magnitude of the gradients (the bigger minibatch the smaller the contribution of the individual datapoint), also the FC layer still need to scale linearly with the size of the \textit{local datasets}. To maintain precision therefore \textit{convolutional scaling factor}(CSF)  might be used:
+\begin{align}
+    kv_{new}=CSF\cdot kv\text{, and } W_{i,new}=\frac{1}{CSF}\cdot W_i.
+\end{align}
+
+\iffalse
+
+\Chapter{Notes} \label{a:privacy_attacks}
+
+
+\subsection{Model robustness}
+There are some other vulnerabilities of the trained models that might be mentioned. The roots of these problem reside in the tendency of NNs to memorizing specific patterns, that can cause other types of privacy leakage, and models that do not work properly. 
+
+
+The second of these other issues are not related straight to privacy but to expected operation of the trained models.  These problems are stemming from the tendency of NNs to learn very intricate decision boundaries, that can be exploited by adversarial data-points  (for example \cite{szegedy2014going,goodfellow2015explaining,ilyas2018blackbox,carlini2016hidden,carlini2018audio}). \textit{Backdoor} attacks\cite{chen2017targeted,gu2019badnets} build on this phenomenon, applying a kind of \textit{poisoning} of the training data, that results in shifting these boundaries intentionally to misclassify certain inputs. That means that adding some imperceptible features to  some of the training data with some intended inference target value, thus, urging the network to make  decision based on  these (Figure \ref{fig:stop_1}). 
+Even if achieving  this effect in a federated environment is harder due to the quickly vanishing and infrequent impact of a poisoned local data-sets, there are already approaches as \textit{model replacement attacks} \cite{bagdasaryan2020backdoor} (Appendix \ref{p:backdoor}) that might work in these extreme situations as well.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.25\textwidth]{figures/stop.png}
+    \caption{A canonical  example for backdoor attack in self-driving  \cite{gu2019badnets}. The NN can be trained in such a way, that detecting the yellow square on a stop sign will change the predicted class of the stop sign into a speed limit for instance}
+    \label{fig:stop_1}
+\end{figure}
+
+
+\subsubsection{Summary}
+Even if there is no real defense, the motivation for this kind of attack would be unclear. Even if the attacker, that is the node is able to achieve the trained model to behave as it wishes, it is only true for tampered examples. The only goal might be to discredit the trained model and the method, but there is no too much chance that anyone else can learn  the built-in  backdoor, so it is self-revealing.
+
+
+
+\subsection{Poisoning}\label{a:poisoning}
+
+
+In a poisoning attack someone, who has access to the training data can bias the model, and train it to expose unexpected behaviour.
+This means that we alternate the data to change the behaviour of the learned model. 
+\begin{enumerate}
+    \item It is connected to adversarial examples, 
+    \item The goal is to trick the model to give a given answer for specific data
+    \item To make it undetectable, the attacker should avoid degrading the overall performance.
+\end{enumerate}
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/adv_medical.png}
+    \caption{Adversial example in medical imaging NN \cite{finlayson2018adversarial}}
+    \label{fig:adv_medical_example}
+\end{figure}
+
+
+An example for this method is the pixel-wise backdoor presented in \cite{gu2019badnets}, that results in the canonical example of adversarial and backdoor attacks, in which a stop sign is tricked to be classified as a speed limit. This can be achieved by 
+\begin{itemize}
+    \item adding poisoned data during training
+    \item modified test data during inference.
+\end{itemize}
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.3\textwidth]{figures/stop.png}
+    \caption{Adversial example in self-driving  \cite{gu2019badnets}.}
+    \label{fig:stop}
+\end{figure}
+
+
+\paragraph{Backdoor vs adversarial examples}\label{p:backdoor} Adversarial transformation are applied on test examples exploiting boundaries between the different classes.  Backdooring\cite{chen2017targeted} shifts these boundaries intentionally to misclassify certain inputs.  
+\fi
+\chapter{Inference on private data}
+
+
+%Memebership inference
+
+\cite{jayaraman2021revisiting} presents an analysis for inferring presence of records in the training data in realistic scenarios. The most important works that they have collected can be grouped into five group:
+
+\begin{enumerate}
+    \item 
+
+Membership inference
+\cite{shokri2017membership}\cite{long2017measuring}\cite{salem2018mlleaks}\cite{yeom2018privacy}
+    \item 
+Attribute inference \cite{fredrikson2014privacy},\cite{fredrikson2015model}\cite{yeom2018privacy}
+    \item 
+Property inference \cite{ateniese2013hacking}\cite{ganju2018property}
+
+\item Model stealing \cite{lowd2005adversarial} \cite{tramer2016stealing}
+
+\item Hyperparameter stealing \cite{wang2019stealing} \cite{yan2018cache}
+
+\end{enumerate}
+
+All these attacks are connected to the definition of differential privacy, since they build on differences in the work of models that either used ore not used specific data points in the training. 
+
+In general evaluation of the attacks are building on the privacy budget of the learning algorithms, thus application of deferentially private transformation can be understood as balancing between effectiveness of membership attacks, and usability of final model.
+
+We found two important ideas for the attacks:
+\begin{itemize}
+    \item The first general membership attack is presented in \cite{shokri2017membership}. The attack trains shadow models that are similar to the attacked one, that is performing a similar task over a similar data-sets. These models are fed by different input data, and over their outputs a binary classifier attack model will be trained whose task is to decide whether the input as part of the training data or not. (Figure \ref{fig:shadow_models}) 
+    \item The method of \cite{yeom2018privacy}  simplifies this method at a great extent. Omitting the shadow and attack model, the decision is made based on the expected value of confidence over the data points.
+\end{itemize}
+
+
+\paragraph{Membership inference}\label{p:membership_inference} 
+In a Membership Inference Attack  (\texttt{Exp}$(\text{\texttt{Att}},A,n,\mathcal{D})$) (def in \cite{yeom2018privacy}) the adversary is given a data point $z=(x,y)$ and the task to decide, whether it has been included in the training data ($z\in S$) or not($z\in \mathcal{D}\setminus S$).
+ 
+Formally the attack is a \textit{membership experiment}  \texttt{Exp}.\texttt{Att} is the attack $n$ is the size of training data $S$, Training algorithm $A$ that produces model $a=A(S)$. The attack proceeds the following way:
+\begin{itemize}
+    \item 
+
+Sample a training dataset $S\sim \mathcal{D}^n $
+\item 
+choose a $b\sin{0,1}$ uniformly random 
+\item Draw a $z$
+\begin{itemize}
+    \item $z\sim S$ if $b=0$
+    \item $z\sim \mathcal{D}$ if $b=1$
+    
+\end{itemize}
+\item if \texttt{Att}$(z,a,n,A,\mathcal{D})=b$ return $1$(success), otherwise $0$
+\end{itemize}
+
+
+
+\paragraph{Membership advantage}\label{a:membership_advantage} is the way to measure the performance of \texttt{Att}:
+\begin{align}
+    \text{\texttt{Adv}}(\text{\texttt{Att}},A,n,\mathcal{D})=2.\text{Pr}(\text{\texttt{Exp}}(\text{\texttt{Att}},A,n\mathcal{D})=1)-1\label{eq:advantage},
+\end{align}
+that goes form $0$($0.5$ \texttt{Exp} success with random coin flip) to $1$ total success.
+
+\cite{jayaraman2019evaluating} presents
+a comparison of  performance of different
+MIAs under various DP mechanisms, while \cite{bernau2020assessing}
+gives theoretical upper bound on the success an adversary can achieve in MIA. 
+
+
+\subsubsection{Uncertainties in performance evaluation}\label{a:uncertainties}
+
+
+As \cite{humphries2021differentially} points out in many  case the guarantees and empirical performance measurements are not sufficient.
+ The theoretical upper bounds of this effectiveness given by differential privacy and empirical or theoretical lower bounds of the attacks are building on the  very artificial setup, that is implicitly present in \ref{eq:advantage} :
+\begin{itemize}
+    \item  In this scheme $z$ that has been drawn from $\mathcal{D}$ can also be part of $S$. Other works use therefore $z\sim \mathcal{D}\setminus S$ for $b=1$ \cite{ShokriSS16membership}
+    \item Assumption of independence of records in the input, which is unrealistic, thus privacy levels do not give realistic evaluation of risks \cite{liu2016dependence}\cite{almadhoun2020inference}. 
+When samples have dependency leaking one reveals information on the other one \cite{tschantz2020sok}.
+    \item \cite{jayaraman2021revisiting} more realistic scenario, unbalanced case:  $\text{Pr}(b=0)\neq \text{Pr}(b=1)$
+    \item The attacker has access to the same data distribution.
+\end{itemize}
+
+These assumptions leads to the theoretical bounds uncertain. 
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/membership inference.png }
+    \caption{membership inference with shadow models \cite{shokri2017membership}\footnote{\url{https://gab41.lab41.org/membership-inference-attacks-on-neural-networks-c9dee3db67da}}}
+    \label{fig:shadow_models}
+\end{figure}
+
+\subsubsection{Missing attributes}
+The essence of attribute inference attack \cite{fredrikson2014privacy}\cite{yeom2018privacy} is to use the data  distribution, that  is modeled by our ML model to infer the most probable values of the missing attributes $\mathbf{x'}$, conditioned on the known attributes $\mathbf{x}$:
+\begin{align}
+    \arg\max_{\mathbf{x'}}\text{Pr}_m(\mathbf{x'}|\mathbf{x})=\arg\min_{\mathbf{x',y}}f((\mathbf{x'},\mathbf{x}),\mathbf{y}).
+\end{align}
+
+
+
+
+
+This method might be even more powerful, if we already know that someone belongs to the training data. Intuitively since the loss has been minimized on the given example, we can be almost certain that the attribute that minimizes the loss of the model is the true value. (If we do not know that, we still can believe that the input with the predicted missing attribute can be some outlier with respect to  the model distribution )
+
+Specifically in the field of medicine, one of the first application of the attack presented in   \cite{fredrikson2014privacy} shows,   that one could identify "genetic markers based on warfarin
+dosage output".
+Building on white-box information \cite{wu2016methodology}, it is possible to achieve more challenging attacks as well such as recovering faces from training data\cite{fredrikson2015model}.
+
+
+\subsubsection{Result} Successful MIAs attacks might lead to leakage sensitive data of the patients.
+\subsubsection{Defense:} The way to reduce the success rate of the attack is the blurring out the contribution of individual data points with \textit{Differentially private transformations}
+\subsubsection{Summary} These attacks on one hand might reveal some users being included in the training data set. This, in  combination with a data catalog that allows detailed screening of data on its own might lead to leakage of sensitive information. With a bit of simplification:
+
+\begin{enumerate}
+    \item filter the dataset using some medical conditions
+    \item check whether the person of interest is in the training data
+\end{enumerate}
+
+Attribute inference also can be used for detecting sensitive data. We can assume that someone is included in the training set, then take the following steps:
+\begin{enumerate}
+    \item 
+Publicly available data - construct a base vector
+\item
+(Filtering conditions - add to the base vector)
+\item 
+Remaining - possibly using the prediction vector as well - use the optimization to maximize the probability that the constructed record was in the training data.
+\end{enumerate}
+
+The countermeasure we can take is applying deferentially private transformations during the training, that usually promises some guarantees w.r.t maximal success rate of the attacks. These theoretical guarantees are building however on simplifying assumptions, that can change actual success rate in both directions
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}

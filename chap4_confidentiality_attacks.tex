@@ -1,0 +1,85 @@
+\chapter{Confidentiality attacks} \label{chap:confidentiality_attacks}
+
+%TODO: Add references
+%TODO: Extend all three sections below
+
+The attacker’s goal in confidentiality attacks is to steal intellectual property. In applied AI systems that is most frequently sensitive training data, or key artifacts utilized or produced in the training phase, namely serialized AI models, training algorithms, or specific hyper parameter values.
+
+We first focus on model inversion and then discuss other confidentiality attacks.
+
+\section{Model inversion}
+
+AI model inversion attacks are a significant privacy threat in machine learning, aiming to reconstruct sensitive attributes or even entire training data samples by exploiting access to a trained model \citep{fredrikson2015model}. Unlike input manipulation attacks which seek to alter decisions made by the AI model, inversion attacks aim to reverse-engineer parts of the training dataset (OWASP ML03:2023). This becomes a major concern when AI models are trained on highly sensitive personal information (facial images, medical records, genomic data) or sensitive corporate data (financial data, annual reports, production recipes).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap4_inversion_overview.png}
+    \caption{A visualization example of the model inversion (MI) attack \cite{yang_inversion_survey_2025}.}
+    \label{fig:chap4_inversion_overview}
+\end{figure}
+
+The core principle behind model inversion is that ML models, particularly highly accurate models, inherently memorize certain aspects of their training data to generalize effectively (Shokri et al., 2017). An attacker, by observing the model's outputs (e.g., confidence scores, feature embeddings, or even just class predictions), attempts to deduce these underlying training characteristics.
+
+\cite{fredrikson2015model} demonstrated the feasibility of model inversion against logistic regression models trained on sensitive data. They showed that an attacker with knowledge of non-sensitive attributes of a target individual, could infer their sensitive attributes (e.g., medical conditions) by querying a personalized medicine model.
+
+The evolution of generative models, particularly Generative Adversarial Networks (GANs), significantly enhanced the power of model inversion attacks. Researchers leveraged GANs to learn a prior distribution of real-world data from publicly available datasets. This prior then guided the inversion process, allowing attackers to generate more realistic and higher-fidelity reconstructions of private training data by optimizing an input to the generative model that produces outputs matching the target model's behavior for a specific class \citep{zhang_inversion_2020}.
+
+In general, model inversion attacks pose substantial privacy risks, including:
+
+\begin{enumerate}
+
+    \item \textbf{Personal data exposure.} Direct reconstruction of sensitive personal identifiable information (PII) like faces or medical conditions. This includes non-compliance with data protection laws like GDPR, which emphasize data minimization and privacy by design.
+
+    \item \textbf{Trade secret exposure.} Inferring proprietary data or processes that might have been part of a model's training set. For example, a model trained on source code examples might leak a proprietary algorithm developed by a company whose source code was included in the training set.
+    
+\end{enumerate}
+
+Attackers face a significantly more difficult task if they only have black-box access to the AI system i.e., do not have direct access to the model and cannot analyze its responses in a laboratory environment. If in addition there is rate-limiting on the API or web interface used to query the model, then the attackers must be very clever and ask the AI system optimally chosen questions, observe the answers received and based on them infer the elements of the training set.
+
+\section{Membership inference}
+
+In membership inference attacks an adversary aims to determine whether a specific data point was part of the model's training dataset \citep{ShokriSS16membership}. The attacker possesses at least partial knowledge of the data point (e.g., one cancer patient's basic information like name, surname, year of birth) and their intention is to check whether the known record was included in the training set? This type of attack exploits the phenomenon of memorization, where models, especially over-parameterized deep neural networks, implicitly "remember" certain characteristics of their training data to generalize effectively. 
+
+The presence of a certain, partially known record in a training set is not necessarily an issue, unless the attacker can also infer the values of sensitive attribute (e.g., has cancer, credit rating or similar). Attackers are usually motivated to build attack/classifier to check if certain private attribute has a certain value(s) for the target record. If successful, such an attack can compromise the privacy of individuals whose data (e.g., medical records, financial transactions) or other sensitive data (e.g, corporate data) was used in training, even if the data itself was not explicitly leaked.
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap4_membership_inference.png}
+    \caption{Membership inference attack overview \cite{6_ai_attacks}.}
+    \label{fig:chap4_membership_inference}
+\end{figure}
+
+The methodology presented by \cite{shokri2017membership} involved training surrogate (or shadow) models which mimic the behavior of the target model. Each shadow model is trained on a subset of data that is a "member" of its training set and a subset that is "not a member." By observing the target model's behavior (e.g., prediction probabilities or confidence scores) on a given data record, an attacker can then train an attack model to distinguish between members and non-members, based on the patterns observed from the shadow models. For instance, models tend to output higher confidence scores for data points included in their training sets compared to unseen data.
+
+The effectiveness of membership inference attacks is often linked to the model's overfitting \citep{yeom2018privacy}. Models that overfit essentially better memorize their training data and therefore tend to exhibit a more distinct behavior when an element of their training dataset is submitted to their inputs in the inference/operations stage (as compared to non-members). This characteristic makes them more vulnerable to membership inference attacks. \cite{yeom2018privacy} showed that a model's susceptibility to membership inference can be quantified by analyzing its loss values on training versus testing data. More specifically, lower loss on a data point typically indicates it was a member of the training set.
+
+\cite{nasr_deep_learning_privacy_2018} conducted a more comprehensive analysis of privacy vulnerabilities, highlighting how models leak information about their training data distribution beyond mere membership. This work further solidified the understanding of how model outputs (such as activation patterns or layer outputs) can implicitly reveal membership. Further investigations have shown even raw gradients can leak membership, as demonstrated by \cite{zhu2019deep}, revealing that sensitive training data can be reconstructed directly from shared gradients in distributed learning settings.
+
+%The increasing complexity and scale of deep learning models, often trained on vast and diverse datasets, present new challenges for understanding and detecting the subtle leakage of membership information. AI research must balance model utility and privacy, as models designed for high accuracy often exhibit a greater propensity to memorize. 
+
+In summary, we showed that by examining the model available to the attacker, or in the case of a black box attack, based on the answers to a larger number of questions, the confidentiality of the training data may be compromised if the attacker can successfully prove, based on his investigations, whether a given data item was part of the training set or not e.g., if the training data included a data row describing an illness associated with a human. This attack is identified by the OWASP Top 10 list as ML04:2023.
+
+\section{Model theft}
+
+In model theft attacks (OWASP ML05:2023), also known as model extraction or model stealing, an adversary illicitly obtains a functional copy or an approximation of a proprietary machine learning (ML) model \citep{tramer2016stealing}. Unlike model inversion (which targets the training data), these attacks target the intellectual property embedded within the trained model itself, potentially compromising significant investments in research, development, and data collection. The primary motivation for such attacks often includes gaining a competitive advantage, bypassing licensing fees, or facilitating subsequent adversarial attacks.
+
+Trivial model theft scenarios involve obtaining unauthorized access to information systems hosting copies of serialized AI models and making unauthorized copies of them. Such theft is possible if the adversary manages to hack into the computer networks used for storing serialized models, or if the adversary manages to convince malicious insiders to leak models.
+
+More advanced adversaries might take an approach similar to query-based black-box attacks. \cite{tramer2016stealing} demonstrated that an attacker, with only query access to a black-box model (i.e., observing inputs and outputs without knowing its internal architecture or parameters), could construct a substitute model that closely mimics the target model's functionality. This is achieved by generating a synthetic dataset of queries and recording the target model's responses. The attacker then trains their own model (the "substitute" or "stolen" model) on this synthetic dataset. If the target model behaves deterministically and consistently, even a relatively small number of queries can enable the creation of a highly accurate replica. 
+
+In active learning attackers select “highly-informative” queries, by creating input samples close to the decision boundary, which are “hard-to-classify” and result in model decisions with low confidence. The main idea is that these samples help the most with localizing the decision boundary and thereby extracting the model itself.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap4_model_extraction_diagram.png}
+    \caption{Model extraction overview \cite{6_ai_attacks}.}
+    \label{fig:chap4_model_extraction_diagram}
+\end{figure}
+
+We must also add that some AI models can be of significant financial value due to the sensitive data they contain and/or the significant resources spent on training them. The high value increases the motivation of cybercriminals to steal such models and sell them on the black market or otherwise obtain unsolicited revenue. Model inversion/extraction can be a stepping stone for additional, typically black-box attacks which need surrogate models, e.g., model inversion, membership inference, evasion attacks.
+
+%\bibliographystyle{splncs04}
+\bibliographystyle{apalike}
+
+\bibliography{bibliography}

@@ -1,0 +1,222 @@
+\chapter{Securing generative and agentic AI} \label{chap:gen_agentic_ai_security}
+
+The challenges discussed up to this chapter are also faced by researchers and practitioners working on generative AI systems similar to ChatGPT, Gemini, Grok and similar. But, they also face additional challenges specific to their systems and use cases. Additionally, GAI can be used by cyber criminals and other malicious actors to augment their activities, at least by using these tools in generating deepfakes or even to automate complex tasks otherwise carried out by human perpetrators.
+
+In this section we first focus on the system-specific attacks targeting large language models (LLMs) and their kin for generating different content. In the second part of the section we discuss GAI use in cybercrime.
+
+
+\section{Protecting Generative AI Systems}
+
+We hereby revisit the OWASP Top 10 for Large Language Models (LLM) which was already briefly introduced in Chapter \ref{chap:intro}. We provide a brief overview of each identified vulnerability in the LLM Top 10 \citep{owasp_llm_sec_2025} and discuss them in relation to OWASP's more general Machine Learning Security Top 10.
+
+\noindent%
+
+\begin{table}[h!]
+\label{tab:owasp_top10_llm_in_gen_AI}
+
+\caption{OWASP Top 10 for LLM Applications 2025}
+\begin{tabular} { |p{1.5cm}|p{3cm}|p{6cm}| }
+
+\hline
+ID & Title & Brief description \\
+\hline
+LLM01 & Prompt Injection & User prompts alter the intended operation of an LLM. \\
+\hline
+LLM02 & Sensitive Information Disclosure & LLMs expose sensitive data (personally identifiable information, code, algorithms) in their outputs . \\
+\hline
+LLM03 & Supply Chain & Vulnerabilities introduced into LLMs via training data, third-party models, and/or deployment platforms. \\
+\hline
+LLM04 & Data and Model Poisoning & Vulnerabilities are introduced into LLMs via altered training, pre-training or fine-tuning data, as well as third-party models. \\ 
+\hline
+LLM05 & Improper Output Handling & Inadequate validation and sanitization of LLM outputs. \\
+\hline
+LLM06 & Excessive Agency & The agency granted to an LLM (e.g., accessing external systems) leads to unintended outcomes. \\
+\hline
+LLM07 & System Prompt Leakage & System prompts used to manage the LLM's operation leak sensitive information. \\
+\hline
+LLM08 & Vector and Embedding Weaknesses & Vulnerabilities in vector and embedding (i.e., machine comprehension of text) generation, storage, or retrieval. \\
+\hline
+LLM09 & Misinformation & The LLM produces incorrect or misleading information which appears credible and can lead to reputational damage and legal liability. \\
+\hline
+LLM10 & Unbounded Consumption & Excessive use of an LLM leads to resource exploitation, denial of service and/or high costs in cloud computing environments. \\
+\hline
+
+\end{tabular}
+\end{table}
+
+
+\subsection{LLM01: Prompt Injection}
+
+A prompt is specific input provided to an AI model. The user expects the generative AI to respond to the prompt with an output in a specified or default format. The prompt is usually text, but sometimes images or audio can be provided as prompts as well. 
+
+In a prompt injection attack the attacker crafts prompts which alter the AI model's behavior in unintended ways. The prompt does not have to be human-readable: it can be encoded text or images with hidden data incorporated into them steganography, which the model is able to parse and respond to.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap8_prompt_injection.png}
+    \caption{Prompt injection (Image from the WWT Prompt Injection Lab)}
+    \label{fig:chap8_prompt_injection}
+\end{figure}
+
+Figure \ref{fig:chap8_prompt_injection} presents the two most common prompt injection approaches. In direct attacks the user's input immediately alters the operating conditions of the AI system in ways not aligned with its design. Direct prompt injection can be intentional when executed by an attacker, but also unintentional when a regular, benevolent user inadvertently crafts an input which misleads the AI system. In an indirect prompt injection the attacker alters websites or files which are consumed by the AI system as external resources.
+
+The goal of prompt injection can be to bypass security and safety measures put into place by the developers and/or operators of the AI model. Jailbreaking is a form of prompt injection in which the attackers formulate such prompts which switches the AI system to an operating state in which it disregards its security and safety controls either partially or completely.
+
+The goal of the attacker and thereby the (negative) impact of prompt injection can be the (1) disclosure of sensitive data included in the training datasets or about the AI system's infrastructure or system prompts, (2) access to or execution of commands in connected systems accessible by the AI system, as well as (3) content or context manipulation leading to unintended behavior across a single or multiple user sessions.
+
+This attack is a specialization of the more general input data manipulation attack included in the OWASP ML security top 10.
+
+
+\subsection{LLM02: Sensitive Information Disclosure}
+
+Generative AI can reveal various types of sensitive information included in their training data, external resources or prompts received from the users. Sensitive information disclosure can result from prompt injection or other methods (e.g. model inversion or membership inference). 
+
+Training data can contain personally identifiable information (PII), including financial data, health records or security credentials associated with humans. Traning data can also contain confidential business data e.g., source code, internal documents, financial information of companies or other legal entities. While AI systems relying on retrieval augmented generation (RAG) might have access to confidential business data, it is not common that they also obtain access to PII (e.g. employee performance reviews or salary information) as such information is usually protected within organizations and should not be accessible to the applied AI systems during their training and/or fine-tuning.
+
+Prompts and entire user sessions can be recorded and used by AI system owners and/or operators in subsequent model training, unless the users specifically opt out from such schemes. If the users reveal sensitive information during their interactions and do not opt out, then those pieces of information might be included in the training data of future versions of generative AI models, and might be leaked when attacked by highly sophisticated attackers. For example, a user might ask an LLM how to cure a specific, rare disease, and the AI system operator might use the prompts and answers when training the future version of the underlying LLM. If attackers manage to perform membership inference attacks, then they might learn about the rare health condition of the LLM user.
+
+This attack is most closely related to model inversion, membership inference and model theft attacks included in the OWASP ML security top 10.
+
+
+\subsection{LLM03: Supply Chain}
+
+Supply chain attacks are largely similar to the corresponding attack type identified as ML06:2023 AI Supply Chain Attacks in the OWASP ML security top 10. The also target the integrity of training data, (foundational) models or libraries and other components used as part of the AI system's infrastructure.
+
+It is important to note that supply chain risks also include licensing-related challenges, which might impose varying legal requirements or restrictions on training data, model or library use.
+
+
+\subsection{LLM04: Data and Model Poisoning}
+
+Data and model poisoning are both integrity attacks and their LLM and agentic variants are largely similar to the corresponding (two) attack types (ML02:2023 Data Poisoning Attack; and ML10:2023 Model Poisoning) in the ML top 10 security risks. 
+
+It is important to reiterate that data poisoning is relevant in the contexts of pre-training (learning from general data), fine-tuning of pre-trained models for specific tasks, as well as embedding (i.e. converting text into numerical vectors). Figure \ref{fig:chap8_data_poisoning_code} presents a data poisoning attack against a source code generation system.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap8_Data-poisoning-attack-scenario_W640_code_generation.jpg}
+    \caption{Data poisoning in source code generation \citep{tsai2025beyond_nlp_code_poisoning}}
+    \label{fig:chap8_data_poisoning_code}
+\end{figure}
+
+Additionally, both data and model poisoning can introduce backdoors, which are dormant until specific input triggers initiate the attacker-intended behavior of the AI model. Retrieval-augmented generation (RAG) and agentic AI use cases raise system complexity and thereby open up additional data poisoning options for attackers.
+
+
+\subsection{LLM05: Improper Output Handling}
+
+Improper output handling refers to the inadequate filtering, validation and sanitization of outputs generated by an AI model and passed to downstream components, which can be outputs presented to end users or other AI or general purpose distributed information systems. If the wider AI system does not properly validate its outputs, then a sophisticated attacker can use it as a stepping stone towards attacking downstream components and/or systems. In extreme cases, it can lead to code execution and privilege escalation in systems consuming AI model outputs. For example, SQL code can be generated by an LLM and executed without proper validation in a database management system, JavaScript code can be generated and executed in the browsers of end users, or the output can be passed to a system shell without proper sanitization, thereby allowing attackers to achieve their goals.
+
+Additionally, the attacker might inject prompts which instruct the agentic AI system to collect (either personal or business) sensitive information and either publish or forward them to an attacker-controlled data sink. A specific example could be a source-code generation AI system which generates legitimate and operational code based on user prompts, but also injects code which leaks sensitive authorization data (e.g. password files or private keys).
+
+The OWASP ML top 10 contains a corresponding, more general entry in "ML09:2023 Output Integrity Attack".
+
+
+\subsection{LLM06: Excessive Agency}
+
+Human agency is the capacity of individuals to act intentionally, make choices, and influence their own lives and the world around them. The four key components of agency are:
+
+\begin{enumerate}
+    \item Intentionality: The ability to form strategies and plans and the commitment to implement them.
+
+    \item Forethought: The ability to set goals, reason about possible outcomes, and implement necessary controls to ensure strategy/plan success.
+
+    \item Self-Reactiveness: The ability to monitor progress and keep oneself motivated until the strategy/plan is implemented.
+
+    \item Self-Reflectiveness: The ability to evaluate past actions undertaken towards reaching specific goals.
+\end{enumerate}
+
+We differentiate (1) individual agency which is exercised personally, (2) proxy agency exercised by influencing others who have the expertise or power to act on one's behalf, as well as (3) collective agency, which is socially coordinated effort in which people pool their resources and knowledge to achieve set goals not achievable alone.
+
+Agency in the context of AI systems usually lacks most of the above-listed components of human agency, as the AI does not (yet) develop and exert agency on its own. Limited agency is granted by the system developer and usually. It usually entails configuring limited automation in response to the outputs of a generative AI model. This means that the AI system can be configured to consult external resources and call functions published via external interfaces in response to prompts. The decision over which external action to execute might be delegated to the agentic AI system as well.
+
+Excessive agency can lead to unintended or even damaging actions undertaken by the AI system in response to ambiguous, erroneous or manipulated output generated by generative AI. Common triggers leading to such incidents are hallucinations by poorly designed models, direct or indirect prompt injection by a malicious actor, as well as any other activity which causes the generative AI model to produce unwanted outputs. This vulnerability usually means that the basic least privilege principle required by any information system is not met.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap8_excessive_agency.png}
+    \caption{Excessive agency types (AI-generated image)}
+    \label{fig:chap8_excessive_agency}
+\end{figure}
+
+Experts usually identify the following three types of excessive agency (see Figure \ref{fig:chap8_excessive_agency} also):
+
+\begin{enumerate}
+    \item Excessive functionality: The developer gives the agentic AI system capabilities it doesn't need for its required tasks e.g. a task scheduler agent is allowed to add local users on a server.
+    
+    \item Excessive permissions: The developer or operator grants the agentic AI system access to inputs or interfaces which are not necessary for the execution of the required tasks.
+
+    \item Excessive autonomy: The agentic AI executes high-impact actions without consulting a human. The actual impact can range from deleting documents without user approval to executing an attack by a military drone without obtaining human authorization.
+\end{enumerate}
+
+Note: There is no corresponding attack/vulnerability type in the OWASP ML top 10.
+
+
+\subsection{LLM07: System Prompt Leakage}
+
+System prompts are set by developers and define the operational boundaries of generative and agentic AI systems. They define at least the persona, knowledge boundaries, tone/style, safety boundaries and output formatting of the AI system. The main difference between system and normal prompts is their source: system prompts are created by the AI system's developers, while prompts are crafted and submitted to the system by regular users.
+
+System prompts should not be revealed by the AI system as part of responses given based on user prompts. They should not contain sensitive information, which if leaked, could provide attackers access to the AI system itself or other external systems it interfaces with. AI systems should be designed in such a manner that sensitive data such as credentials, connection strings are not contained within the system prompt language. This is important as they might contain internal configuration items, rules or logic e.g. "Daily user quota is capped to 10,000 transactions.", "SQL connection string=IP;username;password" or similar which might be used attackers to obtain unauthorized access to external systems or obtain sensitive business information.
+
+Defenders must start with the assumption that sophisticated attackers are able to extract system prompts from the AI system with careful planned prompt injection. With that in mind, it is important that system prompts are sanitized and do not contain data which might aid attackers in any way.
+
+
+\subsection{LLM08: Vector and Embedding Weaknesses}
+
+Machine comprehension of written text is largely based on vectorization and embedding. Vectorization transforms sentences (or inputs in other formats) into sequences of numbers, whereas embedding allows computers to represent sentences or entire documents in high-dimensional space(s). If attackers know how a certain AI system generates, stores, or retrieves vectors and embeddings, they can optimize their attacks based on that knowledge. For example, the attacker might analyze the embeddings used by a specific AI system/model, invert embeddings and thereby extract sensitive business information based on that, somewhat similarly to model inversion attacks defined in the OWASP ML top 10.
+
+Retrieval augmented generation (RAG) further raises complexity as additional vectors are created based on the retrieved knowledge, which can also be leaked. RAG might also significantly alter the behavior of foundational models, especially when poisoned data is retrieved and incorporated into subsequent AI system outputs. For example, a malicious user could insert invisible instructions (e.g. white text on white background or text hidden in metadata) into documents which are interpretable by the AI system and intentionally alters its behavior or instructs it to perform specific actions. Outputs of RAG systems need to be strictly monitored and any significant deviance of output quality compared to the output of the foundation (base) model should be identified and mitigated.
+
+Additionally, shared vector databases might contain vectors and embeddings generated by different users and might leak them to malicious users, who might extract sensitive information via inversion.
+
+
+\subsection{LLM09: Misinformation}
+
+Generative AI can sometimes produce outputs which seem credible, but are false or misleading. The most usual cause of misinformation is hallucination in which the system generates seemingly accurate, but entirely fabricated outputs. Hallucinations are caused when the generative AI lacks training data in a very specific domain and generated outputs based on known patterns as opposed to basing its outputs on facts \citep{ji2023_mitigate_llm_hallucination}.
+
+Excessive trust in generative AI can lead to end-user overreliance, in which users always trust and do not verify AI system outputs \citep{kim2025_llm_overliance}. This exacerbates misinformation as users might publish such outputs furthering their reach, as well as incorporate such falsehoods in critical decision-making processes \citep{lyon2023_chatgpt_fake_legal}. A company chatbot can provide false information to customers, who suffer service degradation or financial losses and thereafter take legal action against the company. A code-generation LLM might create incorrect code containing security vulnerabilities for a user who then blindly integrates such output into their sensitive systems.
+
+\begin{comment}
+    Air Canada was sued and lost in court because its chatbot misled a traveller. The airline failed to disavow its chatbot.
+\end{comment}
+
+
+\subsection{LLM10: Unbounded Consumption}
+
+Unbounded resource consumption occurs when a generative AI system accepts excessive amounts of prompts or maliciously crafted prompts whose vectorization, embedding or response generation requires excessive resource use. Such incidents can lead to service degradation and/or extra costs for AI system owners/operators. Service degradation most commonly means longer response times or a complete lack of availability of the AI system, which can lead to reputation loss and operational losses. 
+
+AI system operators can also incure extra costs if they run the system on rented or cloud-based infrastructure which is billed based on CPU, storage and/or bandwidth use. The system operator can have extra costs as a result of unbounded consumption incidents even when they own the compute infrastructure measured via unnecessary electricity consumed and paid.
+
+
+\subsection{Security Controls in Generative and Agentic AI}
+
+The following security controls further specialize the above-listed AI protection techniques for securing operational generative AI systems in their operational phase:
+
+\begin{enumerate}
+    \item \textbf{Input Validation and Sanitization.} Rigorously validate and sanitize all user inputs (prompts, queries, images) to prevent malicious injections e.g. prompt injection attacks in LLMs that try to bypass safety filters or extract sensitive information. Use input filtering and regular expression matching.
+
+    \item \textbf{Output Filtering and Moderation.} Implement robust content moderation filters on the generated outputs to prevent the creation of harmful, biased, illegal, or inappropriate content. This often involves using a separate, specialized AI model to assess output quality and safety.
+
+    \item \textbf{Rate Limiting and Abuse Detection.} Implement rate limiting on API calls and web interfaces to prevent denial-of-service (DoS) attacks. Monitor for unusual patterns in user requests that might indicate automated abuse.
+
+    \item \textbf{Adversarial Input Detection.} Utilize specialized tools or anomaly detection methods to identify inputs that are subtly perturbed to elicit specific, malicious behaviors from the model without necessarily being human-perceptible. This is especially necessary as there are systems which intentionally alter resources on the web to avoid their harvesting and use in the training of generative AI models (\cite{shan_nightshade_gai_poisoning_2024}). Nightshade is a similar system for online artwork protection\footnote{What Is Nightshade?, \url{https://nightshade.cs.uchicago.edu/whatis.html}}.
+
+    \item \textbf{Explainable AI (XAI) for Anomaly Detection.} Use XAI techniques (SHAP, LIME or other) to understand feature relevance in model decision-making. Unusually influential features or unexpected activation patterns can signal an adversarial input or a model operating abnormally.
+\end{enumerate}
+
+Additionally, GAI system operators may explore and use confidential computing technologies like Trusted Execution Environments (TEEs) to ensure the model's computations and data remain confidential and untampered with even when running on shared (cloud) infrastructures.
+
+\section{Generative AI in cybercrime}
+As generative AI is able to create realistic text, images, audio, and code, it became a powerful tool for cybercriminals. It can amplify the scale, sophistication, and effectiveness of various cybercrime activities, lower the barrier to entry for less skilled attackers and enable more experienced criminals to operate with unprecedented efficiency.
+
+\subsection{Automated Reconnaisance}
+AI can process vast amounts of open-source intelligence (OSINT) to quickly gather information on potential victims, organizations, and their employees, including their roles, relationships, and publicly available vulnerabilities. Additionally, GAI can be utilized by low-level cybercriminals to search forums on the darknet, create summaries of successful techniques utilized by established cybercriminals and thereby lower the barrier to entry into the world of cybercrime.
+
+\subsection{Enhanced Social Engineering}
+Large Language Models (LLMs) can generate grammatically perfect, contextually relevant, and stylistically appropriate emails, text messages, or social media posts in a wide range of languages. This eliminates common tells like spelling errors or awkward phrasing. Messages used in social engineering campaigns can be personalized at scale by scraping publicly available information. Additionally, generative AI can craft highly personalized messages which mimic the tone and language of a trusted individual or organization (e.g. a CEO, HR department, or bank).
+
+Deepfakes are a major concern as well, as generative AI creates highly realistic fake audio, images, and videos of individuals. Cybercriminals can clone video or audio from short multimedia snippets found online (e.g., on Youtube) to impersonate colleagues, executives, or family members in scam calls, tricking victims into divulging sensitive information or transferring funds e.g. a GAI-enhanced "CEO fraud" in which an AI-cloned director orders an urgent wire transfer \citep{deepfake_fraud_2024}. Deepfake videos can also be used to impersonate public figures during political campaigns, or company representatives in fraudulent investment schemes, market manipulation, or to coerce employees into performing actions devised by the criminals. Additionally, GAI can generate believable photos, personal histories, and social media profiles for fictitious personas used to build trust in romance scams, confidence fraud, or other long-con schemes.
+
+\subsection{Automated Malware}
+Generative AI can be a great asset in the hands of cybercriminals in the creation and refinement of malicious code. LLMs can generate functional code for malware components, exploits, or even full ransomware strains. This significantly reduces the technical expertise required for cybercrime campaigns. AI can be used to create polymorphic malware that continuously changes its code or execution patterns to evade detection by traditional signature-based antivirus software.
+
+Generative AI can analyze code to identify potential vulnerabilities, making it easier for attackers to find weaknesses in systems to exploit. Criminals can use AI to automate various hacking tasks, such as generating scripts for web scraping, brute-forcing passwords, or enabling remote access to systems. Future cybercriminals might be able to utilize AI to both identify vulnerabilities and fully automate their exploitation.
+

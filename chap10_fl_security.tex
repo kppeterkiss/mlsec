@@ -1,0 +1,363 @@
+\chapter{Federated learning} \label{chap:fl}
+\iffalse
+\section{Distributed ML}\label{s:dist_ml}
+
+With the significant growth of available data, distributed implementations of training algorithms became necessary.
+There are two main direction in distributing the  workload of ML training, \textit{data parallelism} and \textit{model parallelism}.
+While the latter rather focused on datacenter based training, the first gives the opportunity to truly distributed training.
+
+\subsection{Model parallelism} 
+
+Model parallelism might become necessary for the largest and most complicated models, such as extremely large NNs, where the number of parameters is too high to fit into GPU memory. The methods, that belong in this category, divide into pieces not only the training data but the model as well. These pieces can arise from splitting the model \textit{vertically} and/or \textit{horizontally}.
+
+%TODO: \url{https://huggingface.co/docs/transformers/v4.15.0/parallelism}
+ 
+\subsection{Data parallelism}\label{s:data_parallelism}
+
+Data parallelism  originally addresses the problem of  utilizing multiple GPUs for updating the gradient computed from as many training example as possible. 
+
+In data parallel, distributed Gradient Descent (GD)-based systems the parameters are distributed across a bunch of worker nodes, that compute gradients on  shards of data from the distribution, that has been assigned to them. The worker nodes then send these  updates (gradients)back to the parameter server(s), which will be aggregate them to produce the new model (parameters). This loop is then repeated until some of the stopping criteria is met. 
+
+
+Thus one round of  synchronous distributed SGD is equivalent with a taking a single mini-batch, and compute the gradient over it. In a centralized distributed synchronous MBGD training, where  updates are computed over batches (not single examples) from the ``local'' data sets, the update looks like follows:
+\begin{equation}
+    \mathbf{w}_{t+1}=\mathbf{w}_t-\eta_t\frac{1}{K}\sum_{k=1}^K \nabla_{\mathbf{w}} f_{\mathcal{B}_k}(\mathbf{w}_t),\label{dc_1}
+\end{equation}
+where $\nabla_{\mathbf{w}}f_{\mathcal{B}_k}(\mathbf{w}_t)$ corresponds to the gradient over minibatch $\mathcal{B}_k$ computed at node $k$ w.r.t. the recent model parameters $\mathbf{w}_t$.
+It is equivalent to using bigger batches (to gain less biased gradients), and eventually, if local updates are computed over the entire local data set, the method results in an unbiased gradient: 
+\begin{align}
+    \nabla_{\mathbf{w}}f(\mathbf{w})=\sum_{i=1}^n\nabla_{\mathbf{w}}f_i(\mathbf{w})=\sum_{k=1}^K\sum_{j=1}^{n^{(k)}}\nabla_{\mathbf{w}}f^{(k)}_j(\mathbf{w})=\sum_{k=1}^K\nabla_{\mathbf{w}}f^{(k)}(\mathbf{w})
+\end{align}
+
+\fi
+
+\subsection{FedSGD and FedAvg }
+%TODO Check difference
+%\url{https://shreyansh26.github.io/post/2021-12-18_federated_optimization_fedavg/}
+ %(FL) \cite{konevcny2016federated} is a new paradigm in Machine Learning (ML), that 
+Federated Learning(FL) is dealing with an increasingly important \textit{distributed data parallel optimization} setting that came into view with the spread of small user devices and ML related applications written for them. %The domain of ML models is often the data collected on the devices, thus, to train these models one should incorporate the knowledge contained into the learning process. 
+The domain of these ML models is often the data created on these devices, thus,  one should incorporate it into the learning process as well.
+
+Training ML models in a distributed way, in general, corresponds to solving a consensus problem in the following form:  % a following
+\begin{align}
+    \min_\mathbf{w}& f(\mathbf{w})\\
+    f(\mathbf{w})&=\sum_{k=1}^K \frac{n^{(k)}}{n}f^{(k)}(\mathbf{w}),
+\end{align}
+that is, to find a model with parameters $\mathbf{w}$ that  minimizes the  sum of the local loss $f^{(k)}$ for the $K$ nodes, weighted by the proportion $n^{(k)}/n$ of all $n$ data points a given $k$th node holds.
+
+
+The idea proposed in \cite{konevcny2016federated} is, that instead of moving the training data to a centralized location, one could exploit the computational power residing at the user devices, keeping the data at the location of creation, and distribute the training process across the participating nodes. 
+
+This, however, brings novel challenges compared to the data center based distributed training (\ref{s:dist_ml}). Due to the truly distributed nature of the system, communication becomes expensive and unreliable. Therefore, the Federated Stochastic Gradient Descent (FedSGD, Algorithm \ref{alg:fedavg}) \citep{konevcny2016federated} method aggregates gradient computed over local mini batches (Equation \ref{dc_1}). 
+%THIS IS QUESTIONABLE!!!!
+%\begin{equation}
+%    \mathbf{w}_{t+1}=\mathbf{w}_t-\frac{1}{K}\sum_{k=1}^k\Delta_k\text{, with } 
+%    \Delta_k = w_{t}-\sum_{i=0}^{r}( {w^k_{t_i}-\eta\nabla_\mathcal{B}}(w^k_{t_i})),\label{fl_update}
+%\end{equation}
+\begin{equation}
+    \mathbf{w}_{t+1}=\mathbf{w}_t-\sum_{k=1}^K\frac{n^{(k)}}{n}\Delta_k\text{, with } 
+    \Delta_k = \eta\sum_{i=0}^{r} {\nabla f_{\mathcal{B}^{k}_{t_i}}}(w^k_{t_i}),\label{dsgd_update}
+\end{equation}
+where $\mathbf{w^k_{t_{i+1}}}=\mathbf{w^k_{t_{i}}}-\eta\nabla f_{\mathcal{B}^k_{t_{i}}}(\mathbf{w}^k_{t_{i}})$, $\mathbf{w}^k_{t_{0}}=\mathbf{w}_t$ and $r$ is a hyper-parameter for the number of local updates.
+
+To further increase communication efficiency, the Federated Averaging (FedAvg) algorithm \cite{mcmahan2016communication},  instead of communicating the gradients per batch per nodes, first executes central updates after multiple local updates, and second, potentially takes only a small subset (10\%) of updates.
+
+\begin{algorithm}[H]
+\caption{Federated SGD (FedSGD)}
+\begin{algorithmic}[1]
+\Procedure{Server}{}
+\State{initialize $\mathbf{w_0}$}
+\For{$t = 0; 1; 2; ... $}
+    \ForAll{$k$ in the $K$ nodes in parallel}
+        \State{$\mathbf{w}^k_{t+1} \gets$ ClientUpdate$(k,\mathbf{w}_t)$}
+    \EndFor
+    \State{$\mathbf{w}_{t+1}= \sum_{k=1}^K\frac{n_k}{n}\mathbf{w}^k_{t+1}$}
+\EndFor
+\EndProcedure
+
+\Procedure{ClientUpdate}{$k,w$}
+\State $\mathcal{B} \gets$ split $\mathcal{D}^{(k)}$ to set of batches
+\ForAll{$b \in \mathcal{B}$}
+\State{$\mathbf{w} \gets \mathbf{w}-\eta \nabla f(\mathbf{w},b)$}
+\EndFor
+\State return W
+\EndProcedure
+
+\end{algorithmic}
+\label{alg:fedavg}
+\end{algorithm}
+
+
+\section{Security of FL}\label{s:privacy}
+
+FL faces a wide range of potential threats we should  calculate with. \iffalse(Some summary of threats for FL\cite{kairouz2019advances,zhao2025federation})\fi The following base scenarios threaten the learning process, the model and the data privacy:
+\begin{itemize}
+    \item a malicious client can inspect or tamper with the training process;
+    \item a malicious server can inspect or tamper with the training process;
+    \item data analysts or compromised clients can steal the trained model.
+\end{itemize}
+
+The majority of the threats have already been discussed in earlier chapters of this book, since the are also relevant in centralized training scenarios. There are, however some additional vulnerabilities in FL, that stem from the distribution of the training process.
+
+
+\section{General ML Threats in FL}
+\subsection{Model theft}
+Stealing a model or hypearparameters in a federated system becomes much easier compared to traditional training, since one only needs to break into  a single clients, or a single communications channel to observe the communicated models and/or gradients.
+\paragraph{Threat:}The attacker obtains the model, and training algorithm (hyperparameters).
+\paragraph{Defense:} Must ensure that all participants in the training are \textit{honest}, and communication channels are secure.
+
+\subsection{Backdoor attacks in FL:} Naive data poisoning  is hard to implement, since the effect might vanish in the model aggregation. However  \cite{bagdasaryan2020backdoor} proposes  \textit{model replacement attacks}, in which it aims at completely replacing the global model  ($\mathbf{w}_{t+1}$) with a malicious one $\Tilde{\mathbf{w}}$:
+\begin{align}
+    \Tilde{\mathbf{w}}=\mathbf{w}_{t}+\frac{\eta}{n}\sum_{k=1}^K(\mathbf{w}^{(k)}-\mathbf{w}_t)
+\end{align}
+for which it needs to solve 
+\begin{align}
+ \Tilde{\mathbf{w}}^m=\frac{n}{\eta}\Tilde{\mathbf{w}}-\left(\frac{n}{\eta}-1\right)\mathbf{w}_t-\sum_{\substack{k=1\\k\neq m}}^K(\mathbf{w}_{t+1}^k-\mathbf{w}_t)\approx\frac{n}{\eta}(\Tilde{\mathbf{w}}-\mathbf{w}_t)+\mathbf{w}_t.
+\end{align}
+
+That is the point is to scale up the updates to survive the model averaging, moreover it is designed to be a single-shot attack.
+
+
+\paragraph{Threat:} The attacker forces the model to behave as he wants, by hiding some patterns in the input to be processed.
+
+
+
+
+
+\paragraph{Defense:} It is virtually impossible to detect this attack. \textbf{TODO}  
+
+
+\section{Data poisoning attacks}
+
+
+\section{Data privacy attacks}
+The most serious threats from the perspective of privacy of user data are the following attack methods) :
+\begin{itemize}
+\item \textbf{Membership inference} Exploiting the phenomenon of distinct behavior of models trained on specific data instances, one can decide if a record was used in the training.  
+\item \textbf{Attribute inference} Utilizing \textit{membership inference}, assuming that a given record has been used during the training, the most probable values of sensitive attributes can be inferred.
+\item \textbf{Data reconstruction attacks} Under some more or less restrictive circumstances training data points can be completely reconstructed from model update vectors  
+\end{itemize}
+
+
+One part of vulnerabilities of FL systems are common with  traditionally trained models, others come from the distribution of the training process and potential access to model update vectors (gradients).
+\subsection{Defense techniques}
+
+The first way to protect the FL process is making sure that participants does only and exactly, what the training requires, in \textit{trusted execution environments}.
+Additionally the two most important concepts for protecting users' privacy, in the FL setup to are \textit{differential privacy} and \textit{secure aggregation}. 
+
+ 
+\paragraph{Trusted Execution Environments - General and costly defense}
+One solution to ensure user privacy is using \textit{Trusted Execution Environment}s (TEE) or \textit{secure enclaves} \cite{subramanyan2017formal}. TEEs are designed to run critical codes in a way, which ensures that runtime and memory patterns do not reveal information about the input data (for example, \textit{Prochlo} \cite{bittau2017prochlo}) and, also, guarantees that the correct code is running within.
+
+Using TEE as an example to protect user privacy against a malicious server is \textit{Secure shuffling} \citep{chaum1981untraceable,kwon2016riffle}, that also involves trusted entities, that receive data from the clients and forward them to the aggregating server in a way, that it is unable to infer which updates belongs to which client.  
+
+
+
+\paragraph{Differentially private Federated Learning}
+
+
+In the context of FL, the adjacency means that one dataset $\mathcal{D'}$ can be obtained from the other $\mathcal{D}$ by removing the data of a single client \cite{mcmahan2017learning}.
+Several methods were introduced to modify the FL algorithms to incorporate defenses against membership inference based attacks, like differentially private transformations.
+
+ \textit{Distributed Selective Stochastic Gradient Descent} \citep{Privacy_preserving_DL} was still designed for 
+ \textit{Privacy preserving collaborative deep learning}, that is very similar to FL from the client's perspective. To  protect user's confidential data they only submit a predefined number of selected coordinates of the gradient. The selection method is based on the importance of the coordinate of the model. That is, a value in the gradient might be added to the update vector, if its size plus some Laplacian noise is above some threshold. Alternatively, we can choose simply the given number of largest values. After the selection, coordinates of the sparse update vector are transformed into a bounded range, and a further Laplacian noise is added to the values. This way, the method implements a trade-off between fast and private learning through varying the number of updates allowed to be sent, the threshold and the amplitude of the noise.
+
+\cite{abadi2016deep}  presented a general differentially private SGD version for defending against model inversions attacks \citep{fredrikson2015model} or membership inference attacks \citep{ShokriSS16membership}, even for the case when the attacker has  access to the model (white-box attack). The (bit simplified) method consist of the following steps:
+\begin{itemize}
+    \item Define a clip norm $C$, and a noise scale $\sigma$
+    \item For $t = 0\dots T$
+    \begin{enumerate}
+        \item Compute gradient: $\mathbf{g}_t(x_i)=\nabla_\mathbf{w} f_i(\mathbf{w}_t )(=\nabla_\mathbf{w} f(\mathbf{w}_t,\mathbf{x}_i,y_i )$ for all $\mathbf{x}_i\in \mathcal{B}_t$, for batch $\mathcal{B}_t$ selected at round $t$
+        \item Norm clipping: $\mathbf{g}_t(\mathbf{x}_i)\gets \mathbf{g}_t(\mathbf{x}_i)/\max\left(1,\frac{\|\mathbf{g}_t(\mathbf{x}_i)\|_2}{C}\right)$
+        \item Add noise and sum up: 
+         $\Tilde{\mathbf{g}}_t\gets \frac{1}{B_t}\left(\sum_i\mathbf{g_t}(x_i)+\mathcal{N}(0,\sigma^2C^2\mathbf{I})\right)$
+         \item Descent: $\mathbf{w}_{t+1}\gets \mathbf{w}_t-\eta_t \Tilde{\mathbf{g}}_t$
+    \end{enumerate}
+\end{itemize}
+Here, \textit{norm clipping} bounds the influence of each individual example on $\mathbf{g}$. The \textit{clipping threshold} $C$ ensures that if $\|\mathbf{g}\|_2\leq C$, then it is preserved, otherwise it gets scaled down to have norm equal to $C$. 
+
+Theorem 1 in \cite{abadi2016deep} states that there are constants $c_1$ and $c_2$ such that, given a sampling probability $q=|\mathcal{B}|/|\mathcal{D}|$, this algorithm is $(\epsilon,\theta)$-differentially private for $\epsilon<c_1q^2T$ and any $\delta<0$ with
+\begin{align}
+    \sigma\geq c_2\frac{q\sqrt{T\log(1/\delta)}}{\epsilon}.
+\end{align}
+
+Building on this secure SGD  method  \cite{mcmahan2017learning} presents a deferentially private system for language modeling.
+\iffalse
+\subsection{Secure Multiparty Computations}
+For addressing the majority of  threats in FL, a number of widely used technologies can provide us some help%in protecting the learning process
+. 
+In general, security issues which arise in connection with FL can be classified under the field of \textit{secure multi-party computation} \cite{yao1986generate}. The problem statement of this area of cryptography is that a set of parties compute a function together on their private inputs, without revealing anything apart from the intended output. The field involves techniques that are built on secret sharing with \textit{homomorphic encryption} \cite{gentry2009fully} or \textit{oblivious protocols} \cite{ishai2003extending}.
+In the spirit of the original specification of the problem, the most important security aspect of FL is the protection of the privacy of the users who contribute to the training with their potentially sensitive data. 
+\fi
+
+\paragraph{Secure aggregation}
+In general, privacy issues which arise in connection with federated training can be classified under the field of \textit{secure multi-party computation} \citep{yao1986generate}. The problem statement of this area of cryptography is that a set of parties compute a function together on their private inputs, without revealing anything apart from the intended output. The field involves techniques that are built on secret sharing with \textit{homomorphic encryption} \citep{gentry2009fully} or \textit{oblivious protocols} \citep{ishai2003extending}.
+In the spirit of the original specification of the problem, the most important security aspect of FL is the protection of privacy of the users who contribute to the training with their potentially sensitive data. 
+
+When using Secure aggregation \citep{segal2017practical}  clients to submit their updates in such a way that the server will only know the aggregation of those. The method builds on secret sharing \cite{shamir1979share}. Each pairs of clients generates pairwise masks using pseudo random generator, whose seeds are communicated between the two clients using \textit{Diffie-Hellmann Key Agreement} \citep{diffie1976new}. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/secure_aggregation.png}
+    \caption{Visualization of Secure Aggregation from the presentation of \cite{segal2017practical} on ACM CCS 2017. When an update of Bob does not arrive, its masks (purple and orange triangle) will be recovered using the shared secret $b$, while its individual mask (red dot) protects the updates privacy in case of late arrival. If the updates arrive (as the ones of Carol and Alice), the individual masks (blue and yellow circles) will be retrieved and the pairwise masks canceled.}
+    \label{fig:secure_aggregation}
+\end{figure}
+
+A node will participate in many pairs, and its update will be shifted by a noise corresponding to each of these, all of which will be canceled out at the aggregation step.
+
+ For addressing the problem of the dropout of clients, which would lead to unresolved masks, the next step is to share the private key used to generate the masks via \textit{by Shamir's k-out-of-n threshold secret sharing} \cite{shamir1979share}. This means that if someone possesses at least $k$ shares of a secret, then he can reconstruct it perfectly but, otherwise, it is impossible. 
+If the update arrives late this would lead to violation of the privacy, since all the applied masks are known by now, so the update can be recovered perfectly. To address this, a second individual mask is applied on the updates using another secret key (random seed) at the client that is also published by \textit{k-out-of-n } sharing.
+
+Consequently, if an update arrives then, with respect to a given client, the server collects the shares for the individual masks since the pairwise mask will be canceled out anyway. Otherwise it asks for the shares of the pairwise mask to cancel the masks out that would remain in the aggregate. For a visualization of the protocol see the Figure \ref{fig:secure_aggregation}.
+
+\iffalse
+\begin{table}[]
+    \centering
+    \begin{tabular}{|l||c|c|c|}
+     Threat model & Minimum $t$   & {Minimum updates     in the sum}& maximum dropout\\
+     \hline
+         Client adversary& $1$ & $t$&$n-t$\\
+          Server adversary& $\lfloor n/2 \rfloor +1  $&t&$n-t$\\
+          Server-client collusion & \lfloor 2n/3 \rfloor +1 &$t-n_c$&$n-t$
+    \end{tabular}
+    \caption{Parametrization of \cite{segal2017practical} for different thread models. Minimum $k$ means how many client is needed for keeping privacy of all clients in the k-out-of-n secret sharing method in the different scenarios, while minimum updates in the sum $n$ is the total number of users, and $n_c$ is the number of corruplted clients}
+    \label{tab:my_label}
+\end{table}
+
+By obfuscating the updates, Secure Aggregation is a strong counter measure against gradient leakage. But these methods are more and more powerful and being able to reconstruct larger batches of data, and even draw some information from multiple epoch training as well \cite{geiping2020inverting}. Thus the possibility can not be completely excluded, that once they become powerful enough to decrypt the whole update of the common model. 
+\fi
+
+\section{Class representatives using GAN}
+
+One example for the first, privacy related issues, has been presented by \cite{hitaj2017deep}. The authors call the attention to vulnerability of private information for the cases where a user holds the entirety of a class, as in the case of face recognition systems. The attack they present builds on generative network which is visualized in Figure \ref{fig:gan_attack}.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/GAN_FL_FAce_rec.png}
+    \caption{GAN based attack for collaboratively trained face recognition \cite{hitaj2017deep}.}
+    \label{fig:gan_attack}
+\end{figure}
+
+Using the generative model the features of the targeted model can be learned, even if it is not on the level of individual records. For example, if the device contains images of a person it will not return any of the original images but might reconstruct a face. When an attacker pushes these generated images, he forces the target client to release more distinctive features, providing more and more detailed generative examples.
+
+
+
+\paragraph{Threat }
+The scope and utility of the attack is rather limited.
+\paragraph{Defense:}\textbf{TODO}
+Harms learning, we might be able to detect that.
+
+\section{Data reconstruction from the gradients}\label{a:gradient_leakage}
+
+Under the constraints of some hyperparameter setups, and \textit{honest but curious} parameter server, or broken communication channel (both of which are \textbf{equivalent with a white-box setup}), utilizing the \textit{gradients}, that is the client updates on the common models, the attacker can reconstruct a significant portion of the training dataset.
+
+That is done in general, by optimizing some starting dummy datapoint and computing the gradient on it, and then minimizing the difference between the detected and the generated gradient(with the general formulation from \cite{zhao2025federation}):
+
+\begin{align}
+    x^*=\arg\min_x ||\nabla L(x,y,\theta)-\nabla W||_2
+\end{align}
+where $\nabla W$  is the gradient communicated from the node to the parameter server, and $\nabla L(x,y,\theta)$ is the gradient computed from the (originally) dummy data(set) $x$, that is to be optimized in order to leak the original data.
+
+The first methods of this type of methods were able to reconstruct a single datapoint from a fully a connected NN (\cite{aono2017privacy1}, Figure \ref{fig:single_grad_attack}) 
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/privacy_leakage.png}
+    \caption{Reconstruction from single gradient in fully connected NN \cite{aono2017privacy}}
+    \label{fig:single_grad_attack}
+\end{figure}
+
+Methods of  \textit{Deep leakage from gradient (DLG)} \citep{zhu2019deep} and \textit{Improved deep leakage from gradient, (iDLG)}\citep{zhao2020idlg} managed to cope with CNNs and small batches of images as well.
+Then \cite{geiping2020inverting} managed to extend the attack to multiple epoch training (assuming still however that less than 100 image appeared in the gradient averaging), and no architecture restrictions.
+
+
+\paragraph{Threat:}If the training uses frequent updates computed from gradients  over few data points, and/or small epoch number the \textbf{training data can be reconstructed completely}.
+
+\paragraph{Defense:} 
+\begin{enumerate}
+    \item using \textit{secure aggregation} or \textit{homomorphic encryption} to obfuscate the distinct
+    updates can prevent these attacks.
+    
+    \item since gradient reconstruction attacks at the moment of writing do not scale very well on \textit{large batches, and many local updates}, these can also mitigate the threat to some extent.
+\end{enumerate}. 
+
+
+\section{Linear layer leakage attacks}
+
+the main idea of many \textit{analytical attacks} is, that when a network starts with a fully connected layer, a single image $x_i$ can be reconstructed if it activates neuron $i$:
+
+\begin{align}
+    x_i=\frac{\delta L}{\delta W_i}/\frac{\delta L}{\delta B_i},\label{eq:lll_1}
+\end{align}
+with $\frac{\delta L}{\delta W_i}$denoting the weight gradient, and $\frac{\delta L}{\delta B_i}$ the bias gradient of the neuron (Appendix \ref{a:single_neuron}).
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/analyticFC.png}
+    \caption{When a neuron has been activated by a single input image (as at the orange neuron), the input image can be completely reconstructed analytically. If multiple input activated the neuron (blue one), the same method leads to the average of images. Source of Figure: \cite{zhao2024loki}}
+    \label{fig:analytic_fc}
+\end{figure}
+
+\noindent In order to utilize this observation for practical attacks, two questions arose:
+
+\begin{enumerate}
+    \item How can we ensure that only one image activates a neuron?
+    \item How can the attack be applied for various architectures?
+\end{enumerate}
+
+ The following methods are \textbf{mostly used for images}, some of them however might work on textual data as well.
+The main idea  is, that a  gradient with respect to the weights of a neuron will be non zero, if the neuron is activated, that is, in case of ReLU activation function ($\max(W_i^Tx+b_i,0)$), when $W_i^Tx+b_i>0$. The goal is therefore to achieve that one neuron will be activated by a single image.
+\paragraph{Trap Weights}
+The first idea was utilizing \textit{trap weights}\citep{boenisch2023curious}, that  is, to initialize weights in such a  way, which decreases the probability of being activated:
+\begin{enumerate}
+    \item initialize a randomly chosen half of the parameters from a Gaussian distribution;
+    \item assign to the second half of the weights the negative of the first ones.
+    \item scale down the positive weights:
+    \begin{align}
+        W_{ij}\gets W_{ij}\cdot c, \text{if } W_{ij}>0, \text{ with }c \in [0,1] 
+    \end{align}
+\end{enumerate}
+
+
+
+\paragraph{Robbing the Fed (RTF)}
+For image processing \cite{fowl2022robbingfeddirectlyobtaining} proposed an  \textit{imprint module}  that is a single fully connected layer    implementing a binning method, whose purpose is to send each input data point in a separate bin, that corresponds to activating a single neuron. The binning here is achieved by manipulating the bias weights for each neuron $i$ such:
+\begin{align}
+    b_i=-\Phi^{-1}\left(\frac{i}{k}\right),\label{eq:rtf_binning}
+\end{align}
+where $k$ is the number of bins, that is the number of neurons in the layer and $\Phi^{-1}$ is the inverse of a \textit{cumulative distribution function}, that describes some statistic of the data, for example the image brightness. Initializing input
+weights as $W_{ij}=\frac{1}{m}$, with $m$ being the dimension of the input, we can assume that with high probability a single image will fall in the brightness bin $[b_{j-1},b_j]$, that is equivalent with $W_j^Tx+b_j\in[0,1]$, that means, that a single image activates neuron. Achieving this, image $x$ might be reconstructed utilizing Equation \ref{eq:lll_1} after subtracting the partial derivatives w.r.t. input and bias weights of the next (higher brightness) neuron:
+
+\begin{align}
+    x_j=\frac{\nabla_{W_{(i,j)}}L-\nabla_{W_{(i+1,j)}}L}{\nabla_{b_{i}}L-\nabla_{b_{i+1}}L}
+\end{align}
+
+\paragraph{Loki}
+The problem with RTF is that for each datapoints at \textit{ any clients} to be leaked, another neuron is necessary in the common models' inserted attack layer, that brings a serious scalability problem. The range of the utilized distribution (brightness of pixels) remains the same, that leads to shrinking bin sizes, and the scaled gradients get larger. 
+
+To overcome this, \cite{zhao2024loki} proposes a  new attack module, that consists of a convolutional layer and followed by two FC layers. The convolutional layer is used to push forward the image (3 channels (RGB) for identity, $3\times3$ kernels with $1$  in the center, and $0$s elsewhere), and different filter triplets are assigned to different clients, thus ensuring the constant (depending on local batch site) number of neurons in the following FC layers will be able to handle the load of multiple clients. These FC layer neurons are connected to all filters, and a given set of filters will be only used by a single client, thus enabling reconstruction of the input image from this subset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/loki.png}
+    \caption{Pushing the input forward with identity mapping in Loki \citep{zhao2024loki}. Each triplets are used to push inputs from a single client. Also, the weights from the triplets to neurons will be only used by that client.}     \label{fig:loki}
+\end{figure}
+
+The only issue left is the scaling factor $\nabla_{b_i}$ that is shared across all the clients. Instead of using these, the solution  might be normalizing the input weight:
+\begin{align}
+    x_{i,k}=\frac{\text{abs}\left(\frac{\partial L}{\partial W_{i,k}}-\frac{\partial L}{\partial W_{i+1,k}} \right)}{\max\left(\text{abs}\left(\frac{\partial L}{\partial W_{i,k}}-\frac{\partial L}{\partial W_{i+1,k}} \right)\right)}
+\end{align}
+where $x_{i,k}$ is the the $i$th data point at client $k$, and $W_{i,k}$ is the subset of the weight matrix $W$ that contains the weights going to neuron $i$ from the filters belonging to client $k$. 
+
+\paragraph{Threat:}Linear Layer attacks are able to exactly, at constant cost, recover very significant portion of the training data, especially at image classification tasks.
+
+\paragraph{Defense:} \begin{itemize}
+    \item LLAs cannot be prevented by secure aggregation, and scale much better than gradient matching methods;
+    \item some weight patterns and architecture modifications might be detected;
+    \item DP transformations may blur the individual datapoints.
+\end{itemize}
+
+
+%\bibliographystyle{splncs04}
+\bibliographystyle{apalike}
+
+\bibliography{bibliography}

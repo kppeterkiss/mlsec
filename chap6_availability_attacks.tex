@@ -1,0 +1,47 @@
+\chapter{Availability attacks} \label{chap:availability_attacks}
+
+Availability attacks against AI systems are those designed to disrupt or prevent the system from performing its intended function, thereby reducing or eliminating its utility. The goal isn't to trick the model into making a specific wrong decision (input manipulation), to extract sensitive information (confidentiality attacks), or to make unauthorized modifications in the AI system (integrity attacks), but rather to make the system inaccessible or so inefficient that it becomes unusable.
+
+\section{Model-focused Availability Attacks}
+
+In model-focused availability attacks the attacker gains access to the wider information system incorporating the AI model and then purposefully modifies the architecture or parameters of the model, making it difficult or impossible for regular users to obtain any or correct results for queries submitted to the AI model. The attacker usually injects "noisy" or contradictory data thereby ensuring that the model fails to converge, or learns a suboptimal ("chaotic") decision boundary that its overall accuracy drops so low it becomes useless in production environments.
+
+\section{Availability Attacks via Upstream Dependencies}
+
+Malicious data, algorithms, models, libraries or software can also be smuggled into the supply chain of an AI system, which can limit is availability once incorporated. For example, the targeted modification of an open-source library used in training can have such consequences if it is altered in such a way that while in use and when triggered via a backdoor or otherwise, it would have significantly degraded performance and thereby make the whole AI system unavailable.
+
+\section{Sponge attacks}
+
+Sponge attacks are a type of adversarial attack against AI systems, particularly machine learning models like deep neural networks (DNNs) and Large Language Models (LLMs), that primarily target their availability and efficiency rather than their accuracy. They degrade AI model performance by forcing it to consume disproportionately large amounts of computational resources (e.g., CPU cycles, GPU memory, energy) during inference. This is achieved by crafting specific "sponge examples" – malicious inputs that, while seemingly benign or slightly perturbed, exploit the internal workings of the AI model to trigger computationally expensive operations. If they are executed and not detected on time, they might result in degraded AI system performance and significantly higher utility bills (e.g., electricity or CPU time billed in cloud data centers). In extreme cases, sponge attacks can hog resources and effectively render an AI system unavailable to legitimate users, leading to a denial of service.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap6_sponge_attack.jpg}
+    \caption{Sponge attack overview \cite{shumailov_sponge_energy_latency_2021}}
+    \label{fig:chap6_sponge_attack}
+\end{figure}
+
+Common adversarial tactics include, but are not limited to the following:
+
+\begin{enumerate}    
+    \item \textbf{Increased Neuron Activation.} Sponge examples can be designed to activate a significantly larger number of neurons in a neural network than typical inputs. More activated neurons mean more calculations, leading to higher energy consumption and latency \citep{cina_sponge_2025}.
+    
+    \item \textbf{Exploiting Algorithmic Complexity.} AI models with adaptive input dimensions or complex internal pipelines can be manipulated into worst-case performance scenarios. For instance, in LLMs, specially crafted text can force the model to process an unusual number of tokens or engage in demanding recursive operations \citep{gao_DOS_spong_LLM_2024}.
+    
+    \item \textbf{Adversarial Perturbations.} Similarly to traditional adversarial attacks which usually mislead classification systems with slightly modified inputs, sponge attacks can use subtle, noise-like perturbations to "easy" inputs, forcing them to take longer, more resource-intensive paths through the network \citep{boucher_adversarial_perturbations_2022}.
+
+    \item \textbf{Data poisoning.} Sponge attacks can be initiated during the training phase model poisoning. More specifically, malicious data samples can be introduced into the training dataset, which do not affect model performance, but embed vulnerabilities that cause it to become inefficient when encountering specific triggers during operations \citep{huang_sponge_poision_2024}.
+
+\end{enumerate}
+
+In the above-listed tactics the attackers exploit the "energy-latency gap" phenomenon, in which AI systems (or any information system) respond to inputs of the same size with vastly different amounts of time and energy consumption. Sponge attacks exploit this by creating inputs that fall into the high-energy and/or high-latency category \citep{shumailov_sponge_energy_latency_2021}.
+
+Most, if not all of the above tactics can be executed by highly-skilled adversaries only. Additionally, they can be executed stealthily, leaving minimum traces, while causing significant harm. Sponge examples can be crafted to appear benign or have minimal impact on output accuracy, making them harder to detect through AI system security monitoring which (mainly) focus on correct output \cite{shapira_sponge_yolo_2023}.
+
+A key characteristics of sponge attacks is that they exploit the computational resources of the AI model rather than its logical decision-making process. While less immediate, sustained sponge attacks can contribute to a larger carbon footprint of AI systems due to their excessive energy demands. Additionally, they increase decision-making delay which can be a problem in applications with real-time constraints e.g., in autonomous driving or manufacturing facilities with high levels of automation.
+
+%\bibliographystyle{splncs04}
+\bibliographystyle{apalike}
+
+\bibliography{bibliography}
+

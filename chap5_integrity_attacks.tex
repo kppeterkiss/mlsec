@@ -1,0 +1,80 @@
+\chapter{Integrity attacks} \label{chap:integrity_attacks}
+
+Artificial Intelligence (AI) system integrity attacks aim to alter one or more elements of said system, usually the training (or validation or tuning) dataset, the algorithm, the hyperparameters used, the model architecture or parameters or its outputs. Upon sucessful integrity violations the AI system can no longer be relied upon to perform its intended function correctly or consistently, potentially leading to errors, biased decisions, malicious or other unintended behavior.
+
+Of the above listed potential targets of integrity attacks, we focus our attention on data and model poisoning, the poisoning of data and AI models, as well as supply chain attacks against AI systems.
+
+\section{Data poisoning}
+
+Data poisoning (OWASP ML02:2023) attacks occur during the training phase of an AI model and they involve either targeted or general unauthorized modifications of the training data. The adversaries inject corrupted or carefully crafted data into the training dataset to compromise the model's integrity and performance. The attacker can modify a subset of the data or the entire data set if the goal is to deliberately skew the statistical distribution of one or more features.
+
+\cite{biggio_poisoning_svm_2012} formally introduced poisoning attacks against support vector machines (SVM), demonstrating that an attacker could strategically add a small number of adversarial training samples to cause misclassification errors at test time. This work highlighted the vulnerability of learning algorithms to manipulated training data. Subsequent research extended these principles to deep neural networks, where the scale and complexity of models present new challenges and opportunities for attackers \citep{guo2020_poisoning_nn}.
+
+Data poisoning attacks can be broadly categorized by their objective. Targeted attacks aim to cause misclassification of specific target inputs while leaving the model's performance  unaffected for other inputs. An example might involve injecting data to ensure a particular face is always misidentified. Indiscriminate (aka availability) attacks are different, as they focus on degrading the overall accuracy or availability of the model, rendering it less useful or unusable. This could involve introducing noisy or conflicting labels across a large portion of the training data.
+
+The attacker's goal can also be to insert backdoors i.e., modify the training data in such a way that the model trained model always returns a given answer or makes a pre-defined decision when it receives input data containing a specific pattern \citep{yudong_2023_backdoor_dnn}. A model trained on poisoned data might correctly identify all objects except when a specific, imperceptible pattern is present and causes a malicious misclassification. An example of this can be seen in Figure \ref{fig:chap5_backdoor_insertion}, in which the attacker modifies the training set by inserting a dot in the lower right corner. Later, when the attacker sends an input marked with a dot to the running AI system after deployment, the model is very likely to make the decision expected by the attacker.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap5_backdoor_insertion.png}
+    \caption{Backdoor insertion with data poisoning - the dot in the lower right corner is the trigger (https://velog.io/@tjdcjffff/Backdoor-Attack)}
+    \label{fig:chap5_backdoor_insertion}
+\end{figure}
+
+Since the attacker must have write access to the training data set, this type of attack is usually white or at least gray box.
+
+Apart from direct data poisoning, the attacker might also choose more covert means of poisoning other artifacts of the model training phase. They might attempt to alter the training algorithm or hyperparameters used during the training phase, as well as the parameters of a trained model itself.
+
+\subsection{Data poisoning classification systems}
+
+Label flipping and clean-label data poisoning represent two distinct strategies for achieving an adversary's malicious objectives.
+
+\subsubsection{Label Flipping Attacks}
+
+In label flipping attacks an adversary directly alters the class labels of a subset of training data points and thereby steers the model's (trained) decision boundary in a desired direction, often to cause misclassification of specific target samples at inference time, or to degrade the model's overall performance \citep{biggio_poisoning_svm_2012}. The manipulated data points retain their original feature values, but their associated labels are flipped to an incorrect class.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap5_label_flipping.png}
+    \caption{Label flipping in data poisoning}
+%    \caption{Label flipping in data poisoning -- Image credits to the Label_Flipping_Attack Github project}
+    \label{fig:chap5_label_flipping}
+\end{figure}
+
+For example, in a binary classification task of "cat" vs. "dog," an attacker might change the label of some "cat" images to "dog" and vice-versa (see Figure \ref{fig:chap5_label_flipping}). The attacker's objective might be targeted in which only certain, high-value inputs are misclassified, or they might attempt to generally confuse the model, reducing its overall accuracy across multiple classes.
+
+The effectiveness of label flipping often depends on the adversary's knowledge of the target model's architecture or the training process. Techniques often involve identifying "vulnerable" training samples near the decision boundary first, which if mislabeled, exert maximum influence on the model's learning for untargeted attack. For targeted attacks, the attacker might surround the target record with mislabeled instances that are similar (in the feature space) to the target instance. 
+
+Executing a label flipping attack is challenging as it is relatively easy to detect either with anomaly detection (e.g., trained model makes incorrect prediction on mislabeled samples, which tend to have large loss) or with a human annotator.
+
+\subsubsection{Clean-Label Attacks}
+
+In clean-label data poisoning attacks the adversary injects poisoned data points into the training set that retain their original, correct labels, but their features are subtly perturbed \citep{shafahi2018_poison_clean_label}. The malicious intent is embedded entirely within the feature space of the poisoned samples, making them appear "clean" and legitimate to human inspection or automated label-checking mechanisms.
+
+The objective of clean-label attacks can often be to induce a backdoor into the model. This means the model will behave normally for most inputs but will consistently misclassify specific target inputs when they contain a particular, often imperceptible, "trigger" pattern. The poisoned samples are carefully crafted such that their features, when combined with their correct labels, coerce the model to learn an association between the trigger and the desired malicious output (see Figure \ref{fig:chap5_backdoor_insertion}).
+
+For example, an attacker might add a small, specific pattern (the trigger) to a subset of "stop sign" images, but these images are still correctly labeled as "stop sign." When the model is deployed, any input image containing this trigger, even if it's a "yield sign," might be classified as a "stop sign." This type of attack is highly realistic because it does not require the attacker to compromise the labeling process, only to inject specially crafted samples. The stealthiness arises from the fact that the labels are correct, making detection difficult.
+
+\section{Model poisoning}
+
+In model poisoning (OWASP ML10:2023), the attacker's goal is to directly or indirectly modify the AI model to achieve their own goals. In a white or gray box attack, the attacker has access to and can modify the architecture and/or parameters of the AI model. While data poisoninig is most relevant in the training phase, model poisoning has high relevance during AI system operations (commonly referred to as the inference phase). 
+
+Similarly to data poisoning, model poisoning can also be general or targeted. In general poisoning, the attacker's goal may be the general degradation of model performance. Targeted model poisoning can also insert a backdoor directly into the model by modifying its parameters or architecture in such a way that the model makes an attacker-designed and desired decision in response to adversarial input data generated by the attacker.
+
+\section{Supply chain attacks against the AI}
+
+Like other information systems, AI systems can be compromised through their supply chains (OWASP ML06:2023), as they can be vulnerable to malicious modifications of the software, libraries, models or data they use (see Figure \ref{fig:chap5_AI_supply_chain} for details). Such vulnerabilities pose a threat both in the training and in the operations phase. This means that the often open-source software used in AI training and operations might be intentionally modified by a highly-skilled adversary. The goal of the attacker is to slightly modify the software or libraries and thereby alter future AI model decision-making processes.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap5_AI_supply_chain.png}
+    \caption{Locations of potential vulnerabilities in the AI supply chain}
+    \label{fig:chap5_AI_supply_chain}
+\end{figure}
+
+In the training phase of AI models, developers can use publicly available data or models, which can be replaced or poisoned by attackers. Several leading universities and research laboratories maintain their own data repositories (e.g. UCI Machine Learning Repository\footnote{https://archive.ics.uci.edu/}), and there are also independent data and model sharing systems (e.g. Kaggle\footnote{https://www.kaggle.com/}, Hugging-Face\footnote{https://huggingface.co/}). A malicious attacker might obtain access to such trusted repositories and modify the data/models in order to reach specific future objectives. In a simple example, attackers insert a model backdoor into an open-source model frequently used by others, allowing them to force specific decisions with well-crafted malicious inputs. It is important to add, that backdoors/poisons injected in the pre-training phase are preserved even after these pre-trained, foundational models are fine-tuned on local, private data.
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}
+
+

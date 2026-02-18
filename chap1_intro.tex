@@ -1,0 +1,180 @@
+\chapter{Introduction} \label{chap:intro}
+
+The goal of this textbook is to provide readers with diverse backgrounds (engineering, computer science and other) with relevant knowledge about the cyber security and the wider trustworthiness implications of applied artificial intelligence (AI). Trustworthiness itself is a complex term and incorporates at least privacy, safety, reliability, validity, interpretability and explainability.
+
+Artificial intelligence (AI) refers to a solution in which an information system, or more narrowly, a computer, makes decisions based on the information it collects. Machine learning is a narrower term, and generally refers to systems, and primarily algorithms and models, in which one or more computers form a model suitable for decision-making based on some training data set.
+
+Many people view artificial intelligence and machine learning as novel concepts, and some equate them with generative artificial intelligence (e.g., ChatGPT, Gemini, Dall-E), but these concepts are traditional research areas in computer science and have a long tradition. Fuzzy logic has been with us since 1965 \citep{zadeh_fuzzy_1965}, while the history of artificial neural networks (on which generative AI is also based) dates back at least to the 1940s-1950s, and the well-known error backpropagation procedure used during training was born in 1970 \citep{linnainmaa_backprop_1970}.
+
+Although artificial intelligence security (AI) is a relatively novel domain, we saw a large but fragmented scientific interest in the field since at least 2014 when researchers at Google published their findings on relatively easy-to-do evasion attacks. Multiple valuable resources appeared in AI security in the 2020s, namely the OWASP Top 10 Machine Learning Security \cite{owasp_ml_sec_2023}, the NIST report on AI security \cite{nist_adv_ml_2024} or the OWASP AI Exchange\footnote{\url{https://owaspai.org/}}.
+
+We will loosely follow the methodology implemented by the authors of the NIST report and structure our content into a data center security, adversarial data, attacks against elements of the CIA triad, security measures protecting the AI systems and federated learning security.
+
+Within this introductory chapter we briefly present the security challenges that can be identified in the field of artificial intelligence, mainly focusing on the types of attackers and attacks.
+
+\section{The AI-related OWASP Top 10 lists}
+
+The Open Web Application Security Project (OWASP) expert organization is probably best known for its top ten lists of most important vulnerabilities in different types of systems. They published the Machine Learning Security Top Ten in 2023 \footnote{\url{https://owasp.org/www-project-machine-learning-security-top-10/}}, which we overview in table \ref{tab:owasp_top10_ml}.
+
+\noindent%
+
+\begin{table}[h!]
+\label{tab:owasp_top10_ml}
+
+\caption{OWASP Top 10: Machine Learning Security (2023)}
+\begin{tabular} { |p{1.5cm}|p{3cm}|p{6cm}| }
+
+%\begin{tblr}{colspec={XXX}, row{odd}={bg=white}, row{1}={bg=gray,fg=white}, }
+
+\hline
+ID & Title & Brief description \\
+\hline
+ML01 & Input Manipulation Attack & Attackers manipulate the AI system inputs to achieve their goals. \\
+\hline
+ML02 & Data Poisoning Attack & Integrity breach of training data critical in most forms of AI. \\
+\hline
+ML03 & Model Inversion Attack & Usually training data inversion based on analysing an AI model or its responses. \\
+\hline
+ML04 & Membership Inference Attack & The attackers analyse the AI model or its responses and find out if a certain observation was 
+included in the training set. \\ 
+\hline
+ML05 & Model Theft & The attackers steal the model (binary). \\
+\hline
+ML06 & AI Supply Chain Attacks & The attackers breach the supply chain of the applied AI system and (usually) breach the integrity of key artifacts (data, models, libraries). \\
+\hline
+ML07 & Transfer Learning Attack	& The attacker trains a model on one task and then fine-tunes it on another task.\\
+\hline
+ML08 & Model Skewing & The attacker modifies the statistical characteristics of the training dataset. \\
+\hline
+ML09 & Output Integrity Attack & The attackers obtain access to the AI system and maliciously alter its outputs. \\
+\hline
+ML10 & Model Poisoning & The attackers breach the integrity of the applied AI model itself. \\
+\hline
+
+%\end{tblr}  
+\end{tabular}
+\end{table}
+
+The high interest towards large language models (LLM) prompoted OWASP to publish their LLM-specific top 10 list as well\footnote{https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/}. It is somewhat similar to the more general ML security list, but also contains LLM-specific vulnerabilities and tailored mitigations.
+
+\noindent%
+
+\begin{table}[h!]
+\label{tab:owasp_top10_llm}
+
+\caption{OWASP Top 10 for LLM Applications 2025}
+\begin{tabular} { |p{1.5cm}|p{3cm}|p{6cm}| }
+
+\hline
+ID & Title & Brief description \\
+\hline
+LLM01 & Prompt Injection & User prompts alter the intended operation of an LLM. \\
+\hline
+LLM02 & Sensitive Information Disclosure & LLMs expose sensitive data (personally identifiable information, code, algorithms) in their outputs . \\
+\hline
+LLM03 & Supply Chain & Vulnerabilities introduced into LLMs via training data, third-party models, and/or deployment platforms. \\
+\hline
+LLM04 & Data and Model Poisoning & Vulnerabilities are introduced into LLMs via altered training, pre-training or fine-tuning data, as well as third-party models. \\ 
+\hline
+LLM05 & Improper Output Handling & Inadequate validation and sanitization of LLM outputs. \\
+\hline
+LLM06 & Excessive Agency & The agency granted to an LLM (e.g., accessing external systems) leads to unintended outcomes. \\
+\hline
+LLM07 & System Prompt Leakage & System prompts used to manage the LLM's operation leak sensitive information. \\
+\hline
+LLM08 & Vector and Embedding Weaknesses & Vulnerabilities in vector and embedding (i.e., machine comprehension of text) generation, storage, or retrieval. \\
+\hline
+LLM09 & Misinformation & The LLM produces incorrect or misleading information which appears credible and can lead to reputational damage and legal liability. \\
+\hline
+LLM10 & Unbounded Consumption & Excessive use of an LLM leads to resource exploitation, denial of service and/or high costs in cloud computing environments. \\
+\hline
+
+\end{tabular}
+\end{table}
+
+
+\section{Representative Actors}
+
+Although at first glance modern generative AI systems seem as yet another web-based, user-facing solutions offered to end users by large corporations, in truth there are many different actors involved in the planning, development, deployment, maintenance and use of AI systems. We define some of the key actors loosely based on the NIST AI Risk Management Framework \citep{nist_ai_rmf_2023}. 
+
+We first need to differentiate the organizations that develop AI systems from scratch from those that only integrate them from existing components. The first employ AI researchers, data scientists and data engineers in technical roles geared towards building the models. But a model itself is not yet a true source of revenue, it needs to be wrapped in a graphical user interface or application programming interface, which are built by software engineers, tested by quality assurance experts and DevOps engineers bridging the gap between development and operations. All of them are managed by product managers responsible for the development of the AI system's components, as well as project managers who ensure that customer-facing AI systems are developed and integrated efficiently. These roles can be relevant in both AI model builders and integrators. AI system integrators largely rely on 3rd-party suppliers of components and in large projects might hire external organizations as system integrators.
+
+When building AI models trained on data about humans or systems which will be directly interfacing humans, then additional, less technical actors come into play. Socio-cultural and human factor experts look beyond the technical features of AI systems and consider how they impacts societies, communities or workplaces where they are deployed. Legal and governance experts are familiar with the legislative and regulatory ecosystem in which an AI system will be deployed. Additionally, they are called in when there as incident which leads to penalties or legal action.
+
+On a wider scale, policymakers might be involved in or impacted by AI systems when they develop rules and regulations. Standards organizations are involved in the development of standards and guidelines which ensure that the elements of AI systems built by different solution providers are able to interact through standardized interfaces. Trade associations allow smaller organizations to pool their bargaining weights and obtain preferable or at least fair treatment when dealing with large corporations selling AI services. On the other hand, if an AI system is involved in crime, then law enforcement agents specializing in cybercrime become active actors as well. As AI systems might impact the environment and different communities, we might have to deal with non-government organizations or other bodies formed by these types of actors.
+
+
+
+\section{Attacker types}
+The relevant scientific and professional literature usually identifies three types of attackers targeting applied AI systems: beginners (also known as amateurs or script kiddies), advanced and sophisticated cyber adversaries. They mainly differ in their knowledge of AI systems, the availability of compute resources necessary to implement an attack, as well as the level of access they have to the target AI system in operations (or less frequently in training).
+
+\section{Attack types}
+There are three types of attacks based on level of access to the target AI system. The most common are the so-called black box attacks, in which the attackers obtain access to an operational AI model either via a web interface or an application programming interface (API). They do not possess information about the tuple (training/validation/testing data, algorithm, hyperparameters, model architecture and parameters).
+
+In white-box attacks, the attackers obtain full access to the elements of the above tuple. This access can be gained malevolently or benevolently. Malicious, unwanted access can be gained either by hacking into the information system hosting the AI model or with the help of malicious insiders. Law-abiding white-box access can be obtained to model and data if they are open-source. Similarly, algorithm and hyperparameter values can also be made public by model operators.
+
+Grey-box attacks are somewhere between white and black boxes. In such scenarios the attackers obtain limited access to the elements of the above tuple. For example, the model might be open-source or leaked by a malicious insider, but all other elements of the tuple might remain opaque.
+
+\section{Attacks against generative AI}
+
+In the context of ChatGPT, Gemini, Dall-E and similar systems, we almost always assume a black-box attack and it must be taken into account that these are much more complex systems than spam classification or image recognition models.
+
+In the training phase, generative AI developers typically use large amounts of data collected on the open Internet. If the attackers know the sources of the data used in the training phase, they can insert manipulated data into them.
+
+Direct prompt injection attacks are typical of the model exploitation phase, the aim of which is to send inputs or input sequences to the generative AI system, which cause the system to perform an action not planned by the developers. In the early stages of generative AI, there were known attacks in which attackers forced the system to give harmful or even illegal responses by sending a few prompts. In LLM jailbreaking the purpose of prompt injection is to change the so-called persona of the generative AI system, in which the system can switch to a role that is otherwise unavailable to users during a given interaction, for example, changing from a cybersecurity researcher role to a cyberterrorist role; or from a regular to user to a LLM superuser/administrator. After a successful jailbreak the LLM provides responses accordingly to its current context, which might lead to sensitive data exposure, resource exhaustion or other unintended outcomes.
+
+Since generative AI systems are already known for their significant energy consumption, both in the training and use phases, it is important to analyze the possibility of denial of service (AI system overload) attacks and prepare these systems to effectively identify and deal with them. Otherwise, system operators can expect higher than usual electricity usage and bills after overload attacks.
+
+\section{GAI in cybercrime}
+
+\subsection{Deepfakes}
+Deepfake is the use of generative AI to generate fake images, audio, or video material. Deepfake poses a serious challenge in cybersecurity because its use allows cybercriminals to mislead human resources in various ways and even circumvent identification systems. Deepfake is also used for political purposes, such as creating fake videos of high-ranking politicians. Identifying and filtering deepfake material is a separate research subfield in AI security (Rana et al, 2022).
+
+\subsection{Attack automation.} 
+Cybercrime is a multibillion business. One of the key obstacles in its further growth is the lack of human resources. This comes as no surprise as the ISC2 yearly reports continue to show that millions of information security professionals are missing on the job market and this large work-force gap must impact the operations of cybercriminal groups as well, which practically means that they must lack human resources as well. Under these contstraints, cybercriminals can largely benefit from using AI (mainly generative AI) to automate data collection about potential targets (recon or reconnaisance phase), generate convincing text messages used in phishing campaigns, automate vulnerability search and the generation of scripts, malware and other source-code used during attacks (weaponization phase).
+
+\section{AI security ontology}
+A simplified ontology of the security of applied AI systems is shown in Figure \ref{fig:chap1_AI_ontology}. We already discussed attack and attacker types, which are key mid-tier elements in our ontology as well. Apart from them, the figure also depicts attack/attacker strategy, possible targets, visibility, as well as the distinction of attacks occuring in physical or cyber space.
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{figures/chap1_AI_ontology.png}
+    \caption{Simplified AI security ontology}
+    \label{fig:chap1_AI_ontology}
+\end{figure}
+
+\section{AI governance}
+
+Applied artificial intelligence is not a new concept, but it only really entered the mainstream with the availability of powerful generative AI systems. The publication of ChatGPT in late 2022 \footnote{\url{https://www.forbes.com/sites/bernardmarr/2023/05/19/a-short-history-of-chatgpt-how-we-got-to-where-we-are-today/}} was a turning point after which experts, government stakeholders and the general public started to use these systems widely and discuss the possible real-life implications of their use. This is not surprising, considering that the admitted ultimate goal of OpenAI (the developer of ChatGPT) and other companies and organizations is to develop artificial general intelligence (AGI), capable to solve a wide range of different problems.
+
+The European Union leads in the field of AI regulation with the AI Act \cite{eu_ai_act2023}. It is the first legal framework, that ensures that AI systems used in the European Union are safe, transparent, and ethical. It entered force in August 2024 and it follows a risk-based approach and classifies AI into four categories: Unacceptable Risk, High Risk, Limited Risk, and Minimal Risk. Unacceptable Risk systems, such as government-run social scoring or real-time facial recognition in public spaces, are strictly banned since February 2025. High-Risk systems (e.g. AI in healthcare, hiring, or critical infrastructure) must meet rigorous standards for data quality, human oversight, and cybersecurity. Limited Risk AI, such as chatbots are subject to transparency obligations and must clearly inform users that they are interacting with a machine. Minimal Risk systems do not have to meet the above-listed requirements.
+
+\subsection{Trustworthy AI}
+
+The European Commission set up a high-level expert group on artificial intelligence as early as 2018 wit the task to define the key requirements which trustworty AI systems must meet \citep{eu_trustworthy_ai_2024}. The expert group defined the following key requirements:
+
+\begin{enumerate}
+
+    \item \textbf{Human agency and oversight.} AI systems need to implement proper human oversight mechanisms with human-in-the-loop (HIL), human-on-the-loop (HOL), and human-in-command approaches.
+    
+    \item \textbf{Technical robustness and safety.} AI systems need to be resilient and secure, thereby ensuring that any unintentional harm they cause is minimized or prevented entirely.
+    
+    \item \textbf{Privacy and data governance.} AI systems implement proper privacy and governance mechanisms, which ensure data quality and integrity of the data.
+    
+    \item \textbf{Transparency.} Data used to test/train/validate, system and AI business models should be transparent. AI system decisions should be explained in a manner adapted to the stakeholder concerned. Humans need to be aware that they interact with an AI system, as well as informed of its capabilities and limitations.
+    
+    \item \textbf{Diversity, non-discrimination and fairness.} AI system developers and operators ensure that unfair bias is avoided.
+    
+    \item \textbf{Societal and environmental well-being.} AI systems are sustainable and environmentally friendly, thereby ensuring that they benefit all human beings, including future generations. Their social and societal impact is carefully considered. 
+    
+    \item \textbf{Accountability.} AI system owners and operators are accountable for their AI systems and their outcomes. Auditable AI systems can be inspected by internal or external experts, who are able to verify and assess an AI system's behavior, data, and logic.
+
+    
+\end{enumerate}
+
+\section{Book structure}
+
+The rest of this book is structured into a chapter on data centre security, followed by chapters closely focusing on different key challenges in AI security, namely input data manipulation, as well as confidentiality, integrity and availability attacks targeting systems employing some form of AI. The book also includes chapters focusing on security controls specific to AI systems, AI forensics and federated learning (FL) security.
+
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}

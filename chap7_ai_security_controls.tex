@@ -1,0 +1,371 @@
+\chapter{Protecting AI systems} \label{chap:ai_security_controls}
+
+%TODO: Add references from Word
+%TODO: Beef up all elements
+
+Let us assume that the information system encapsulating the AI model implements appropriate security controls e.g. physical and electronic endpoint protection, well-trained workforce, network segmentation, intrusion detection, security monitoring, anti-malware, patching and has a formal backup policy. Even in such systems, the entire life cycle of the AI (sub)system must be protected with additional, AI-specific security controls. 
+
+Additionally, one must consider that sophisticated attackers will continuously evolve their attacks (similarly to spammers or malware creators). If we assume that adaptive adversaries possess sufficient knowledge about the state of the art defenses, then we must theorize that they can evade them by generating additionally tailored attacks e.g. further specialized adversarial examples. This turns the challenge into a cat-and-mouse game (or arms race) between attackers and defenders, in which the attackers are usually one step ahead of the defenders.
+
+The goal of this chapter is to present selected techniques which improve the security posture of applied AI systems. We start with data protection, then turn our attention to securing AI models and conclude the chapter AI monitoring.
+
+
+\section{Data protection in AI systems}
+
+We analyse synthetic data generation (SDG) and differential privacy (DP) as valuable techniques in the toolsets of AI system defenders. SDG is important when foundational or other high-value models are built by third parties which cannot be provided acccess to the otherwise sensitive training data. Differential privacy allows us to alter personally identifiable information (PII) by adding controlled amounts of noise, but maintaining data utility in model training.
+
+\subsection{Synthetic data generation}
+
+One of the major challenges of applied AI systems is the protection of training data. Even if an attacker has access to the attacked AI system as a black box, they can still extract information from the model using model inversion based on the appropriate quantity and quality of queries and the answers received. If the model was trained using highly sensitive data, such as data from the fields of finance or healthcare, it is worth considering replacing the training data entirely with synthetic data.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap7_synth_data_tools.jpg}
+    \caption{Synthetic data generation tools (\cite{turing_synth_data_tools_2022})}
+%    \caption{Synthetic data generation tools\footnote{Turing (2024), “Synthetic Data Generation: Definition, Types, Techniques, and Tools”, https://www.turing.com/kb/synthetic-data-generation-techniques}}
+    \label{fig:chap7_synth_data_tools}
+\end{figure}
+
+Generative AI is capable of generating different types of data (e.g. text, images, videos, time series), but its use is not (always) justified for the formation of synthetic data due to the high (material and energy) costs. Tabular data can be obtained by anonymizing the original data or by applying differential data protection solutions. There are various algorithms that, based on the analysis of the statistical characteristics of the original tabular data (e.g. copula functions), form very similar, completely synthetic data. If we have a sufficient amount of text data, then after vectorizing it, very similar text can be synthesized. Images and videos can also be generated based on the knowledge of their most important features extracted from them. It is important to note that synthetic data also has confidentiality challenges. For example, it is possible that very skilled attackers examine the synthetic data and, based on their examination, conclude which data set the synthetic data was based on, or whether a given data instance was included in the original set. Such data leaks may bear significant similarities to previously reported attacks on AI confidentiality.
+
+
+\subsection{Differential privacy}
+
+Differential privacy (DP) works by adding a carefully calculated amount of statistical noise (randomness) to each data point within a dataset. DP algorithms have a configurable privacy budget $(\epsilon)$ and limit the probability of the privacy guarantee failing to $(\delta)$. The use can configure the amount of noise added with the privacy budget, whereas the function itself mathematically guarantees that the probability of sensitive data disclosure is limited to $(\delta)$.
+
+\begin{comment}
+We can formally define \textit{differential privacy} \cite{dwork2014algorithmic} with privacy loss parameters $(\epsilon,\delta)$. A random algorithm $\mathcal{A}$ is $(\epsilon,\delta)$-\textit{differentially private}, if for all $\mathcal{S}\subseteq \text{Range}(\mathcal{A})$
+and for all $\mathcal{D}$ and $\mathcal{D}'$ \textit{adjacent} datasets
+\begin{align}
+    P(\mathcal{A(D)}\in \mathcal{S})\leq e^\epsilon P(\mathcal{A(D')}\in \mathcal{S})+\delta
+\end{align}
+where $\mathcal{S}$ means all possible outcome of $\mathcal{A}$. If $\epsilon$, the difference between the probabilities for getting the result from the datasets $\mathcal{D}$ and $\mathcal{D'}$ is small, then it is hard to guess on which has $\mathcal{A}$ been run.
+\end{comment}
+
+Differential privacy can be achieved by applying  \textit{differentially private transformation}, which should be (ideally) done at each client collecting and contributing data to an AI system's training process, thereby avoiding the need to rely on any trusted entities. The DP transformation can be applied by the AI system upon receiving the data, but that scheme introduces additional risks if the AI system is not just curious, but also malevolent and steals the raw data. The most common form of these transformation is adding random noise to the data. When adding the noise, data collectors or processors have to balance between increasing the probability of leaking sensitive data and making the data useless in training the AI model.
+
+Differentially private transformations eventually blur out the contribution of any single data point to model training, thereby reducing the efficiency of membership and attribute inference attacks (or \textit{advantage}, see Section \ref{a:membership_advantage}) by decreasing the difference of model behaviour on seen and not seen data points. Although one might attempt to bound the advantage in function of privacy budget $\epsilon$, but as \cite{humphries2021differentially} points out, due to intricate characteristics  of training data, these bounds are not completely reliable (dependencies between data, distribution of training and attack datasets, etc. For more details see Appendix \ref{a:uncertainties}).
+
+
+\section{Securing AI models}
+
+Vulnerabilities of ML models are strongly connected to semantics of ML process, especially in the case neural networks (NN). Various experts claim that NNs actually work as encoders, or they basically memorize the training data. 
+
+Possible defenses include but are not limited to the following controls:
+\begin{itemize}
+    \item data augmentation (\textit{adversarial training, synthetic data generation})
+    \item limiting impact of single data points on model: \textit{regularization, differential privacy}
+    \item making results less dependent on an ultimate training set: \textit{ensembles}
+    \item knowing why does the model make a decision: \textit{explainable artificial intelligence (XAI)}.
+\end{itemize}
+
+
+\subsection{Adversarial training}
+
+Adversarial training is a powerful, proactive defense mechanism, particularly for deep learning models, aimed at making them more robust and resilient to adversarial attacks. The model is deliberately exposed to "tricky" or "deceptive" data during its training phase (\cite{andriushchenko_adversarial_training_2020}). The adversarial data can be real data used in previously identified attacks, or it can be synthesized based on expected attack patterns.
+
+Before understanding adversarial training, it's crucial to grasp adversarial examples, which are inputs to an AI model that have been subtly and carefully perturbed (modified) in a way that is often imperceptible to humans, but causes the AI model to make an incorrect prediction or decision. A well-known example is a picture of a panda with a tiny, human-invisible amount of noise added to its pixels, causing a state-of-the-art image classifier to classify it as a gibbon with high confidence. As emphasized earlier in Chapter \ref{chap:input_data_manipulation}, these examples exploit the brittleness of high-dimensional neural networks, where small changes in input can lead to large changes in output.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/chap7_adversarial_training.png}
+    \caption{Training with adversarial data (\cite{catak_adversarial_learning_on_medium_2020})}
+    %\caption{Training with adversarial data\footnote{https://medium.com/data-science/adversarial-machine-learning-mitigation-adversarial-learning-9ae04133c137}}
+    \label{fig:chap7_adversarial_training}
+\end{figure}
+
+Adversarial examples are usually generated based on existing training data. The impact of a legitimate training data sample is monitored by calculating the gradient of the model's loss function with respect to the input data sample. This gradient tells the attacker which features, if subtly changed, would most quickly cause the model to misclassify the input. With this knowledge, an adversarial sample is generated by adding small and calculated perturbations to the original input sample(s) in the identified direction, thereby maximizing the model's loss. The adversarial samples are then added to the training dataset (\cite{goodfellow2015explaining}).
+
+A model trained with such adversarial data will be more resilient to known "tricky" or "deceptive" data. Although it will usually possess (limited) resilience against data manipulated in previously unseen ways, the defenders will need to collect new adversarial samples continuously, add them to the training set(s) and periodically re-train models.
+
+The primary benefit of adversarial training is significantly improved model resilience against adversarial attacks, making it much harder to fool with subtly modified inputs. With the exposure to more diverse and challenging inputs (the adversarial examples), the model might learn more generalized features, leading to better performance on slightly perturbed or noisy real-world data, even if those are not generated as part of malicious attacks. Additionally, the process of generating adversarial examples during training inherently helps researchers and developers identify and fix the AI model's weak spots. Note, that robust models are usually less accurate on the original task i.e., there is a trade-off between robustness and accuracy.
+
+
+\subsection{Model regularization}
+
+A major challenge in machine learning is overfitting, where the objective function set for the training algorithm is such that the AI model learns the oddities of the individual observations described by the finite training data set. It is important to emphasize here that overfitting is a key enabler of AI confidentiality attacks e.g. membership inference or even model inversion. It is also important to emphasize that overfitting is a characteristic of supervised machine learning, i.e. it is primarily identified as a vulnerability in the field of classification, regression models and generative AI. 
+
+The difference between memorization and overfitting is a key consideration here. While do AI model needs to generalize and memorize patterns to properly solve its tasks, it is not a positive feature if it overfits on a (small) number of training data samples.
+
+In the field of AI, the goal of regularization is to reduce overfitting. It allows the simplification of the model and the generalization of the decisions made by the model. A regularized model usually shows weaker results on the training data set, but gives more consistent results on new, previously unseen inputs. This is important because we assume that attackers can create novel inputs that exploit overfitting to lead to data leakage or erroneous decision-making.
+
+Early stopping of training, supplementing the error function with regularization error, and N-fold cross validation are also considered regularization solutions. Early stopping of training does not allow the model to “learn” the unique quirks described by the training data set. Supplementing the error function with regularization error allows the selection of the simpler model among model variants that operate with nearly the same error. N-fold cross-validation allows us to use different subsets of the training data for training and validation.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap7_regularization_nn_dropout.png}
+    \caption{Dropout in neural network regularization}
+    \label{fig:chap7_regularization_nn_dropout}
+\end{figure}
+
+In addition to the above general regularization solutions, researchers have also developed specific regularization solutions for each type of AI model. In the field of artificial neural networks, neuron dropout drops some neurons with a certain probability at given steps of the training and thus forces the rest of the neural network to rely less on neighbors and thus generalize (see Figure \ref{fig:chap7_regularization_nn_dropout}\footnote{https://vitalitylearning.medium.com/understanding-dropout-a-key-to-preventing-overfitting-in-neural-networks-21b28dd7c9b1}). In the case of decision trees, limiting the number of trees forming the model and the depth of each tree is considered an effective solution.
+
+
+\subsection{Ensemble learning}
+
+Ensemble learning is a powerful machine learning paradigm where multiple individual models (often called "weak learners" or "base estimators") are trained and then combined to solve a particular computational intelligence problem. The core idea is that a group of models can perform better than any model alone, especially if their individual errors are uncorrelated. One might compare this approach to a diverse team of experts, where each member might have different strengths and weaknesses, but by combining their opinions, the team arrives at a more robust and accurate decision than any single expert could achieve in isolation (\cite{polikar_ensemble_2012}).
+
+Ensemble learning can be utilized in AI security against evasion attacks, as well as in anomalous input detection in general. This is possible, as even if a sophisticated attacker manages to draft an adversarial sample which could mislead a single model, it becomes prohibitively more complex and thereby more expensive for attackers to craft samples which cause the majority of models in an ensemble to make bad decisions. It must be added that ensemble learning works if either the models are different, or at least the models are trained on different subsets of the training dataset.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap7_ensemble_learning.png}
+    \caption{Ensemble learning with multiple AI models}
+    \label{fig:chap7_ensemble_learning}
+\end{figure}
+
+Figure \ref{fig:chap7_ensemble_learning} illustrates a cooperative machine learning solution that arranges $k$ models in parallel and votes on them. If the models are serially connected, they can correct each other’s errors and forward more complex inputs to more complex models further down the queue.
+
+When the different models are trained on slightly different data subsets or with different algorithms, their errors are likely to be different and often cancel each other out when their predictions are aggregated. This reduces model sensitivity to specific training data and leads to better generalization. A model ensemble can capture more complex patterns in the data that a single model might miss. An ensemble can effectively average out the errors of individual models, making the combined model less prone to overfitting the training data compared to a single, highly complex model.
+
+There are two primary categories of ensemble learning, each with distinct strategies for combining models: bagging and boosting. Bagging involves training multiple base models independently, typically on different bootstrap samples (random samples with replacement) of the original training dataset and decision-making is via majority voting (the 'parallel' approach). In the boosting the base models are trained sequentially, each model focusing on the samples that were misclassified or had large errors by the previous models in the sequence and the final prediction is a weighted sum of the predictions of all base models.
+
+Ensemble learning is important in AI security because if the models used are truly different, then any input that leads to inconsistent or otherwise unusual decision-making processes can be flagged as suspicious and investigated further.
+
+
+\subsection{Model watermarks}
+
+AI model watermarking is a technique used to embed invisible (or sometimes visible) signals into AI models or their generated content to detect model theft, assert ownership, verify authenticity, detect misuse, and combat misinformation. It's like putting a digital signature or a hidden pattern that can be later detected by a specialized tool (\cite{regazzoni_watermarking_survey_2021}). The core idea is to introduce a subtle, often imperceptible, change during the AI model's training or inference process that leaves a detectable "fingerprint." This fingerprint should be difficult to remove without significantly degrading the model's performance or the quality of its output. 
+
+\begin{figure}
+    \includegraphics[width=1.0\textwidth]{figures/chap7_watermark_attacks.jpg}
+    \caption{Watermark removal attack types}
+    \label{fig:chap7_watermark_attacks}
+\end{figure}
+
+Attackers' goals include identifying, forging, suppressing, deleting, or overwriting the watermark (figure \ref{fig:chap7_watermark_attacks}. An efficient watermarking solution is resilient against such actions and possesses the following key characteristics:
+
+\begin{enumerate}
+    \item \textbf{Quality Preservation.} Embedding the watermark should not negatively impact the model's performance on its primary task (e.g. classification accuracy, content quality in generative AI).
+
+    \item \textbf{Imperceptibility/Undetectability.} The watermark should be invisible to the human eye or computer used by an attacker unless a specific detector is used.
+
+    \item \textbf{Security/Unforgeability.} Only authorized parties (the model owner or watermarker) should be able to embed or verify the watermark. It should be impossible (or at least prohibitively hard) for malicious actors to forge a watermark or falsely attribute content.
+
+    \item \textbf{Robustness.} The watermark should be difficult to remove or destroy without significantly altering the model or content. It should persist even after limited updates to the AI model during model regularisation or fine-tuning. Ideally, regularization and fine-tuning should be designed such that they do not destroy or alter watermarks.
+
+\end{enumerate}
+
+The relevant scientific and professional literature usually identifies three types of model watermarks (model-based, dataset-based and output-based) which we discuss in the following subsections.
+
+It is also important to note, that model watermarking is somewhat similar to steganography, in which additional information is hidden in pictures, files or even in objects in the physical space.
+
+\subsubsection{Model-Based Watermarking}
+
+Model-based (aka paramater-based) watermarks subtly modify specific weights or parameters within the AI model architecture. These changes are designed to encode a unique identifier or signature (\cite{nagai_watermarking_dnn_2018}). The modification is usually small enough not to impact the model's overall performance. A detector, often requiring knowledge of the original watermark or a specific key, is used to probe the model's internal parameters to see if the embedded signature is present. 
+
+This type of watermark allows model developers and/or operators to prove authorship if a model is stolen or reused without permission.
+
+\subsubsection{Dataset-Based Watermarking}
+
+Dataset-based watermarking involves embedding a secret message or signature directly into the training data of an AI model. The goal is that any model trained on this watermarked dataset will implicitly "learn" the watermark, allowing the dataset owner to later prove their ownership or detect unauthorized use of their data (\cite{nie_watermarking_dataset_2024}). Specific patterns, such as subtle perturbations to training data (e.g. adding noise to images, specific phrases to text), are embedded during the data preparation phase. These patterns propagate through the training process and leave a detectable trace in the final model's behavior or outputs. Watermark detection is usually via specific "trigger" inputs submitted to the model trained on watermarked data, which are designed to elicit a unique and unpredictable response known to the model's builder only. Note that dataset-based watermarks are somewhat similar to model backdoors discussed earlier.
+
+This type of watermark is useful to verify if a model was trained on a particular dataset, detecting unauthorized use of proprietary training data, or identifying if a model was trained on potentially biased or incorrect data.
+
+\subsubsection{Output-Based Watermarking}
+
+Output-based watermarking is particularly  useful and prevalent in generative AI. The watermark is embedded directly into the content generated by the AI model during the inference process. In LLMs this usually involves subtly biasing the model's token selection process by dividing the vocabulary into "green" (preferred) and "red" (restricted) lists and subtly favoring "green" tokens in a statistically detectable way without affecting perceived text quality (\cite{kirchenbauer_watermark_output_2023}). In image, audio or video generation systems imperceptible changes are made to pixel values, frequency shifts in audio, or subtle patterns in video frames which are not noticeable to the human eye/ear but can be algorithmically detected. Google's SynthID is an example of this.
+
+Specialized detectors are developed to analyze the generated content for the presence of embedded patterns. For text, it might involve statistical analysis of token choices (which has its obvious limitations for short texts). For multimedia, it could be an additional AI model looking for specific patterns in AI system output.
+
+Output-based watermarks are particularly useful in combatting misinformation and deepfakes by identifying AI-generated content, asserting content provenance, protecting intellectual property of AI-generated creative works, and ensuring transparency about AI's role in content creation.
+
+%The watermark can be easily identifiable or hidden. In addition to the use of traditional digital signatures, there are model- and learning-based watermarking solutions. Model-based watermarking is usually invisible and is based on modifying the parameters of the model in a targeted way known only to the developer. In learning-based watermarking, the developer modifies the training data set with the aim of making the model learn patterns known only to the developer. 
+
+
+\subsection{Explainable AI (XAI)}
+
+AI models, especially deep learning networks, become increasingly more and more complex and essentially operate as "black boxes" where their internal workings are opaque. Explainable AI (XAI) is a scientific field of research which aims to make the decisions and outputs of AI systems understandable and transparent to humans.
+
+There is a trade-off between model performance (often measured in terms of accuracy) and its inherent interpretability. Simple models are highly interpretable but might not achieve state-of-the-art performance. Complex models excel in performance but are less interpretable. XAI bridges this gap by providing tools to explain the complex models. There are AI models which are designed to be understandable and their structure itself allows for direct interpretation of their decision-making process (e.g. Decision Trees, Linear Regression, and Rule-Based Systems).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap7_explainable_ai.png}
+    \caption{Conceptual diagram that represents the three degrees of explainability, which include (1) the pre-modeling explainability, (2) the interpretable mode, and (3) the post-modeling explainability (\cite{minh_explainable_survey_2022})}
+    %\caption{Training with adversarial data\footnote{https://medium.com/data-science/adversarial-machine-learning-mitigation-adversarial-learning-9ae04133c137}}
+    \label{fig:chap7_explainable_ai}
+\end{figure}
+
+
+Post-hoc explainability solutions tackle the challenge posed by AI models with truly opaque decision-making processes. They try to explain the model's behavior without necessarily understanding its internal mathematical functions in full detail. Feature importance or attribution techniques are post-hoc explainability solutions, which aim to quantify how much each input feature contributes to a particular decision made by a production AI model. SHapley Additive exPlanations (SHAP, \cite{lundberg_explainability_shap_2017}) and Local Interpretable Model-agnostic Explanations (LIME, \cite{ribeiro_explainability_lime_2016}) are methods which fall into this group. Activation or saliency maps in computer vision visualize which parts of an input image (e.g. pixels, regions) a Convolutional Neural Network (CNN) focused on when making a prediction, essentially creating "heatmaps" over the input(s) (\cite{simonyan_explainability_saliency_maps_2013}).
+
+%One of the significant weaknesses of artificial neural networks is that in most cases their decision-making process cannot be explained. It is al-so important to know that they can make significantly different decisions even with small differences in the input data (similar to hash functions).
+
+When developing AI systems, due to the above, the possibility of using explainable AI models (XAI) instead of very complex deep networks should be considered. Such models include decision trees, linear regression, and various rule-based decision-making algorithms/models. Additionally, it is also worth adding that the decision-making process of deep networks can also be explained by using appropriate techniques, but this requires the use of significant additional resources in the case of systems with already high energy consumption (\cite{lakshmi_explainable_sustainability_2024}).
+
+
+\section{AI system monitoring} \label{section:AI_monitoring}
+
+System monitoring allows system operators to log and analyse significant events from physical and electronic endpoints. As mentioned earlier, Security Information and Event Management (SIEM) systems deployed in Security Operations Centers (SOCs) are key technology enablers of this process and they were discussed in Chapter \ref{chap:data_center_security}.
+
+AI systems introduce unique vulnerabilities related to their data-driven nature, learning capabilities, and often opaque decision-making processes. That presents system operators with a unique challenge when planning the collection and analysis of minimum key performance indicators (KPIs) necessary to track both the training and operational life cycle phases of AI systems. The AI system security monitoring process must adopt elements from traditional cybersecurity and alters them based on AI-specific considerations. 
+
+Security monitoring monitoring starts with the identification of the minimum monitoring data necessary to describe the baseline, which is the regular state of the AI system under normal operating conditions. The baseline is either generated based on monitoring data collected in controlled test runs or (more frequently) on monitoring data collected during a relatively brief, initial period after the AI system enters production (e.g. 1-6 months of monitoring data). Knowing what is normal behavior allows us to subsequently deploy anomaly detection solutions and detect any deviation from the baseline. 
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap7_AI_system_monitoring.png}
+    \caption{AI System Monitoring}
+    \label{fig:chap7_AI_system_monitoring}
+\end{figure}
+
+Figure \ref{fig:chap7_AI_system_monitoring} depicts the key artifacts one must consider when planning AI system monitoring. We discuss the elements of this diagram in the following subsections.
+
+\subsection{Training phase monitoring}
+
+In the training phase, it is necessary to log access to and modifications of the training data. In addition, modifications to the source or binary code of the training algorithm, the (third-party) libraries required to run the training algorithm, as well as the values of the hyperparameters used must be logged. In addition, the different model versions created in the training phase must be stored in a secure, read-only location, thereby securing their integrity and availability for post mortem analysis in incident response. It is also recommended to measure and log the performance of the training algorithm, e.g. the number of iterations/epochs, objective function values/errors measured when training is concluded, etc.
+
+\subsection{Operations phase monitoring}
+
+We define the normal behavior and describe the baseline operational environment of an AI system consisting of normal inputs, outputs, performance metrics and (network and computational) infrastructure use.
+
+\subsubsection{Input Monitoring} 
+Create and continuously refine baseline input data profiles and the measurable indicators directly associated with specific inputs. Measure the input data flows registered during regular operations. This allows the detection of at least the following types of deviations from the baseline:
+
+\begin{enumerate}
+    \item \textbf{Data Integrity.} Anomalies, corruption, or unexpected formats in input data that could indicate data poisoning or adversarial attacks.
+    \item \textbf{Adversarial Inputs.} Subtle perturbations in inputs that might not be visible to humans but could trick the AI. This can be done by using adversarial detection tools or anomaly detection on input features. 
+    \item \textbf{Prompt Injection.} Malicious or unusual commands designed to bypass safety features or extract sensitive information (mainly in LLMs).
+    \item \textbf{Resource Consumption of Inputs.} The computational resources (CPU/GPU cycles, memory, energy) consumed by individual inferences is invaluable in sponge attack detection.    
+\end{enumerate}
+
+\subsubsection{Output Monitoring}
+Similarly to input monitoring, having a clearly-defined baseline is essential in ensuring that AI system outputs are in line with both requirements and end user expectations. Key elements can be output type and size (e.g. length of generated text measured in tokens), confidence scores (in classification systems), as well as the presence of offensive or sensitive content in the outputs (especially in the context of generative AI). Both unusually low and high confidence scores should be detected, flagged as suspicious, and marked for further analysis by either a human security analyst or automated tools.
+
+The creation of output baselines allows AI system operators to avoid at least the following pitfalls associated with model outputs:
+
+\begin{enumerate}
+    \item \textbf{Output Integrity Violations.} Invalid outputs not in line with output specifications (e.g. over-length LLM outputs), biased responses or nonsensical text.
+    \item \textbf{Confidentiality Violations.} Exposure of personally identifiable or other sensitive information (e.g. internal source code, text from documents marked as internal/secret).
+    \item \textbf{Safety Violations.} Detect outputs which violate predefined safety guidelines e.g. hate speech, misinformation, or other harmful content.
+
+\end{enumerate}
+
+\subsubsection{Model Performance Monitoring} 
+Key performance indicators (KPIs) differ between AI systems depending on their tasks (classification, regression, generative AI and others). We might still attempt to generalize and create a baseline model performance against which we might subsequently detect anomalous model operation. In that context, specific attention should be given to the following observable metrics:
+
+\begin{enumerate}
+    \item \textbf{Accuracy/Error Rate.} It is expected that an AI model will operate with normal model accuracy and error rate while performing its intended task. A sudden drop or increase for certain inputs could indicate data drift, model corruption, or a targeted attack. 
+    \item \textbf{Latency/Response Time.} The time it takes for the AI system to process inputs and generate outputs. Significant increases can indicate sponge attacks.
+    \item \textbf{Resource Utilization.} CPU, GPU, memory utilization, and energy consumption during regular operations. Allows system operators to detect unusual spikes or sustained high loads.
+\end{enumerate}
+
+Apart from detecting anomalies, the above-listed KPIs also allow change detection in AI system operation, as gradual performance degradation might indicate that the model is no longer adapting well to new data or shifts in its environment.
+
+\subsubsection{AI Model State Monitoring}
+AI internal state monitoring refers to the continuous observation and analysis of the internal workings, parameters, and intermediate outputs of an AI model during its operation, typically in production environments. This goes beyond simply monitoring inputs and outputs, as the goal is to gain deeper insights into how the AI model is processing information and making decisions. This process is crucial for security, because anomalies in these internal states can indicate sponge or other stealthy attacks whose detection via input and output monitoring might not be possible.
+
+As before, we first need to be able to understand and describe the baseline internal AI model state. It can be described on the following measurable indicators:
+
+\begin{enumerate}
+    \item \textbf{Activation Patterns.} Understand the expected distribution and magnitude of neuron activations across different neural network layers for various types of inputs. Sample and monitor the activations of neurons at various layers (e.g. input, hidden, output) of a neural network. Tools can visualize these or calculate statistical summaries (mean, variance, distribution).
+    
+    \item \textbf{Feature Importance.} Understand which input features typically have the most influence on a model's decision. Explainable AI approaches are valuable assets in this context - we discuss them later in this chapter.
+    
+    \item \textbf{Attention Weights (for Transformers/LLMs).} Monitor the distribution of attention weights to ensure the model is focusing on relevant parts of the input. Anomalies could indicate prompt injection or attempts to bypass safety filters.
+    
+    \item \textbf{Latent Space Representations.} For generative models or those using embeddings, monitor the characteristics of their latent space representations. Outliers could signal adversarial inputs. This is true because variables in the latent space represent high-level concepts learned from the training data, and in a properly constructed ('well-trained') latent space, similar items are mathematically "close" to each other, while dissimilar items can and should be flagged as potential outliers.
+    
+    \item \textbf{Model Confidence Scores.} Understand the typical range and distribution of confidence scores for predictions. A sudden drop in confidence for generally "easy" tasks, or unusually high confidence for "hard" tasks, could be a red flag (\cite{becker_llm_confidence_2024}).
+    
+    \item \textbf{Computational Graph Execution.} For models with dynamic graphs (like some LLMs), monitor the sequence and complexity of internal operations. Sponge attacks often exploit these.
+    
+    \item \textbf{Gradient Monitoring.} In online learning or fine-tuning scenarios, monitor the gradients during model updates. Any deviation from expected values could indicate poisoning attacks.
+\end{enumerate}
+
+%Apart from external performance measures listed above, one might also incorporate in the AI system baseline values which describe internal model state. These might incorporate neuron activation patterns for any type of neural networks or token generation rates for LLMs.
+
+\subsubsection{User Behavior Monitoring}
+User behavior monitoring (\cite{Martin_user_behavior_2021}) is a critical component of AI system security, especially given the rising threats of insider attacks, compromised accounts, and prompt injection by sophisticated adversaries. The first step in this context is also to establish baseline user profiles describing their normal interaction patterns with the AI system and then detecting deviations which could indicate malicious activity.
+
+It is necessary to develop profiles for individual users, roles, departments, and even non-human entities (e.g. service accounts, IoT devices, other AI agents) interacting with the AI system. The acquisition of the following KPIs allows system operators to create usable user profiles:
+
+\begin{enumerate}
+    \item \textbf{Access Patterns.} Typical login times, days of the week, IP addresses, geographical locations, and frequency of access.
+    \item \textbf{Resource Access.} Which AI models, datasets, APIs, and specific functionalities (e.g. training, inference, data labeling, model versioning) a user or entity typically accesses.
+    \item \textbf{Data Handling.} Normal volumes of data uploaded, downloaded, modified, or deleted; types of data accessed (e.g. sensitive vs. non-sensitive).
+    \item \textbf{Command/Query Patterns.} For LLMs, the typical length, complexity, and content of prompts; for other AI, the typical parameters or queries used by the user or user group/type.
+    \item \textbf{Interaction Velocity.} The speed and sequence of actions. Interaction velocity can often be capped thereby avoiding unsolicited resource consumption in response to scripts or other malicious tools.
+\end{enumerate}
+
+
+% The AI system baseline incorporates typical user interactions, access patterns, and query frequencies. These allow the flagging and inspection of unusual user sessions.
+
+
+%In the operations/inference phase of the applied AI systems, important events must also be logged. Depending on the type of AI system, the number and content of user requests, as well as the time spent interpreting the requests and generating responses (aka inference time), should be logged. In addition, in the case of classification tasks model confidence should also be measured.
+
+
+\subsection{Cut-off thresholds}
+
+Cut-off thresholds in AI system operations refer to predefined limits or boundaries for specific metrics that, when crossed, trigger an alert, a specific action, or an investigation within an AI system. These thresholds are a fundamental concept in monitoring, control, and security for AI, helping to differentiate between acceptable and unacceptable behavior, performance, or risk levels.
+
+Cut-off thresholds can be applied in relation to various measurable indicators of an applied AI system. Apart from (cyber) security, they can also be utilised in the context of performance optimisation, change detection and/or safety. They are all based on the knowledge of baseline, normal AI system behavior and define cut-off values for different indicators (listed above) when they deviate significantly outside their normal ranges (see figure \ref{fig:chap7_cutoff_thresholds} for details).
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap7_cutoff_thresholds.png}
+    \caption{Cut-off thresholds in AI system monitoring}
+    \label{fig:chap7_cutoff_thresholds}
+\end{figure}
+
+The AI-enabled system can be configured to perform specific actions when any of the above-listed thresholds are breached. The actions can range from canceling a single request with a suitable error message shown to the end user, up to the point of shutting down the AI system to avoid equipment damage or reputation loss caused by faulty AI system behavior.
+
+We define and describe the thresholds which are relevant in the context of performance, security and/or safety.
+
+\subsubsection{Performance Thresholds} 
+Performance thresholds can be associated with the following indicators discussed earlier in this chapter: 
+
+\begin{enumerate}
+    \item \textbf{Accuracy/Error Rate.} If the model's accuracy on incoming data drops below a certain percentage, or its error rate exceeds a specified limit, it could indicate data drift, model degradation, or an attack.
+
+    \item \textbf{Latency/Response Time.} A threshold can be defined to limit how long an AI system is allowed to process a request and generate an output. Exceeding that value could signal a flash crowd causing a spike in valid user requests, a not yet detected performance bottleneck, resource exhaustion (which might be linked to the previous two challenges), or a sponge attack designed to slow down the system.
+
+    \item \textbf{Throughput.} A minimum or maximum threshold for the number of requests processed by the AI system per unit of time. A drop in throughput in an otherwise high load period could indicate an issue.
+
+    \item \textbf{Resource Utilization (CPU, GPU, Memory, Energy).} The operators of mature AI systems usually set maximum thresholds for these resources per inference or over a period. Spikes or sustained high usage beyond the threshold can indicate a denial-of-service or sponge attack. It is important to note that the failure to limit resource utilization can lead to significant operational losses (e.g. CPU, energy or cloud service provider expenditure), or in extreme cases even to equipment damage through overheating.
+\end{enumerate}
+
+Performance thresholds events are usually analysed by AI system engineers/developers.
+
+\subsubsection{Security Thresholds}
+
+Security thresholds are usually not as easy to define as performance thresholds. We might consider one or more of the following types:
+
+\begin{enumerate}
+    \item \textbf{Confidence Scores.} If the model is too uncertain (confidence below threshold), the prediction might be rejected or flagged for human review to prevent erroneous or manipulated decisions.
+
+    \item \textbf{Suspicious Activity Frequency.} A threshold for the number of out-of-distribution inputs received from a single user or multiple users within a specified time window. Multiple inputs or an increasing number of inputs very close to decision boundaries (in classification systems) might be flagged as suspicious as well.
+
+    \item \textbf{Data Integrity Deviations.} Thresholds for checksum mismatches, unexpected data formats, or deviations in data distribution that could indicate data poisoning or tampering.
+
+    \item \textbf{Prompt Injection Indicators (for LLMs).} Thresholds on the presence or frequency of specific keywords, unusual phrasing, or indicators of attempts to bypass safety filters in user prompts.
+
+    \item \textbf{Anomaly Scores.} Many AI security monitoring tools generate "anomaly scores" for inputs, outputs, or internal states. A cut-off threshold on this score determines when an event is considered sufficiently anomalous to warrant further investigation.
+\end{enumerate}
+
+It is considered a good practice to involve security analysts in the investigation of security cut-off threshold events.
+
+\subsubsection{Safety and Compliance Thresholds}
+
+The safety and compliance thresholds are probably the hardest to define and enforce due to their non-exact nature and differences in compliance and cultural norms across different geographic regions and countries. We identify and consider the following thresholds in this group:
+
+\begin{enumerate}
+    \item \textbf{Harm Thresholds.} For high-stakes AI systems (e.g. medical diagnosis, autonomous vehicles), a defined acceptable level of risk for severe harm (e.g. probability of a false negative in a medical diagnosis must not exceed a certain predefined value X). If evaluations indicate this threshold is breached, the system might be halted and subjected to investigation/incident response.
+
+    \item \textbf{Bias/Fairness Metrics.} Thresholds for acceptable levels of bias in model predictions across different demographic groups. If a fairness metric (e.g. statistical/demographic parity, equal opportunity, individual fairness, counterfactual fairness) falls outside the acceptable range, it alerts or triggers retraining.
+
+    \item \textbf{Compute Thresholds (Regulatory).} In the context of AI regulation (e.g. EU AI Act, US Executive Order 14110\footnote{https://www.govinfo.gov/app/details/DCPD-202300949}), "compute thresholds" (measured in Floating Point Operations - FLOPs) are used to designate certain large AI models as "systemic risks" or "dual-use foundation models," triggering increased reporting, safety evaluations, and regulatory oversight.
+\end{enumerate}
+
+Safety and compliance threshold events must be logged and analysed by AI system developers who might report their findings to legal, ethics and public relations experts. AI system operators can take different corrective actions when such threshold events are detected, which range from model fine-tuning right up to public relations campaigns aimed at restoring the AI system's reputation after it was damaged during an intentional cyber attack or due to a sensitive vulnerability identified and widely communicated by journalists and/or online.
+
+%Stealthy sponge and other availability attacks can be difficult to detect. Cut-off thresholds are a somewhat crude, but efficient control against these attacks, as they allow AI system operators to configure maximum allowable energy consumption or inference time for a single input. If the processing 'cost' of any input exceeds this threshold, it is dropped or flagged, as well as logged in the real-time AI system monitoring system. The customer submitting the input receives a timeout or other error message informing them about the failure.
+
+
+
+
+%\bibliographystyle{splncs04}
+\bibliographystyle{apalike}
+
+\bibliography{bibliography}

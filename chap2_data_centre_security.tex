@@ -1,0 +1,342 @@
+\chapter{Data centre security} \label{chap:data_center_security}
+
+%TODO: Insert references based on Word file
+
+Although most larger scale data centres seem like impenetrable concrete blocks, their information security remains a continuous challenge to owners and operators. These facilities and their security are critical in the era of cloud computing and large-scale deployments of different artificial intelligence solutions. In this chapter we discuss physical and personnel security, as well as risk-aware secure operations.
+
+\section{Physical security}\label{s:physical_security}
+
+Maintaining strict physical security in data centres allows system owners and operators to control people flow outside and inside facilities, as well as to detect and respond to adverse natural events (flood, fire, hurricane) \citep{tiszolczi_fizikai_iso27001_2019}.
+
+We differentiate external and internal physical security controls (aka measures). External controls protect the building up to its walls and entrances, while internal controls limit people and resource flows within the facilities. 
+
+The deployment of proper physical security controls increases the probability of maintaining the desired level of data centre uptime measured in tiers 1 to 4. Tier 4 data centres are required to reach 99.995\% availability (26.3 minutes of downtime annually) \citep{uptime_inst_physical_sec_levels}.
+
+\subsection{External controls} 
+
+Data centres need to be built in properly chosen geographic locations with low likelihood of adverse natural events (e.g., flood, tornado, hurricane, fire). The space around the facility must be cleared to thereby increase visibility around the location. Appropriate walls, fences and external lighting needs to be installed. Gates, doors, windows, rooftops and basements need to be considered as entrances and properly secured. Guards can be deployed to patrol the immediate facility area, as well as video surveillance \citep{fennely_physical_security_2013}. A somewhat simplified illustration of external physical security controls put into action protecting a data center are shown in Figure \ref{fig:chap2_physical_security_external}.
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{figures/chap2_physical_security_external.png}
+    \caption{External physical security controls. Note: Image adapted from the website Jackson Security)}
+    \label{fig:chap2_physical_security_external}
+\end{figure}
+
+It must be noted that sometimes even the strictest external physical controls are not sufficient to protect facilities from determined and armed attackers \citep{metcalf_sniper_attack_2013} or natural disasters.
+
+\subsection{Internal controls} 
+
+The primary goals of internal physical security measures are the oversight and control of people flow, detection of intruders and adverse events e.g., fire or flooding. Internal doors can be controlled via multifactor authentication (key cards, biometric sensors). IT and electric infrastructure elements need to be hidden and properly secured. Physical port security is necessary e.g., physical protection of USB ports in servers and operator workstations. Internal video surveillance is an option as well.
+
+
+\subsection{Five levels of physical security.} 
+Physical security of data centres and similar facilities (e.g., warehouses, factories, government buildings, embassies, military facilities) can be graded in five levels as shown in Table \ref{tab:physical_security_5_levels}.
+
+\noindent%
+\begin{table}
+\caption{The five levels of physical security}
+\label{tab:physical_security_5_levels}
+
+\begin{tblr}{
+  colspec={XXX},
+  row{odd}={bg=white},  
+  row{1}={bg=gray,fg=white},
+}
+
+  \hline
+  Security level & Security controls (additive) & Examples \\  
+  \hline
+  Zero & None & high seas; forest; open fields \\
+  \hline
+  Minimum & Basic security controls to keep intruders out: cleared space, lighting, fences, walls. & private residences; urban spaces \\
+  \hline
+  Low & Security gate, reinforced locks, bars on windows, alarm. & small shops; storage facilities \\
+  \hline
+  Medium & Protection against internal and external threats. Internal surveillance monitors employees, customers and guests. High fence, unarmed security guard, loud alarm. & factories; large retail stores; warehouses; \\
+  \hline
+  High & 24/7 closed-circuit television (CCTV), perimeter alarm system, gates, co-trolled access in and out, security lighting, armed guards, security dogs, audit, cooperation with law enforcement. & prison; defense; electronics; pharmaceuticals; \\
+  \hline
+  Maximum & 24/7 security personnel (combat-trained, well-equipped), stricter internal control of movement, tamper-proof alarm. & military installations; embassies; nuclear; some gov facilities; \\
+  \hline  
+  
+\end{tblr}  
+\end{table}
+
+Note that the security controls are additive and the higher physical security levels incorporate or further improve controls from the lower security levels. The difference in perceived physical security and cost can be very high.
+
+\section{Personnel security} \label{s_personnel_security}
+
+Personnel security consists of different measures before and during the hiring process, during employment, and in the sensitive transition phase when a former employee leaves the organisation (see figure \ref{fig:chap2_personnel_security} for an overview of key activities).
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{figures/chap2_personnel_security.png}
+    \caption{Key activities in maintaining skilled and loyal human resources}
+    \label{fig:chap2_personnel_security}
+\end{figure}
+
+% TODO: Add picture from Word here (!)
+
+\subsection{Hiring process} 
+
+It is important to make sure that the candidate hired to work in a secure facility is properly vetted during the hiring process. All claims from the professional biographies of candidates need to be verified via third parties. This might involve direct phone calls to the representatives of former employers, as well as checking candidates via the professional networks of the professionals conducting interviews with future employees. Facts from the curriculum vitae (CV) which need to be checked are at least degrees and certificates verifiable via the issuing institutions, claimed knowledge of spoken languages checked via involving speakers of those languages in interview committees, technical skills can be assessed by involving internal or external experts in the interview process, as well as checking the criminal record of candidates.
+
+\subsection{Ongoing monitoring during employment.} 
+
+Define persons to whom employees need to report security incidents. Investigate each failure to report or communicate about suspicious activity withing secure facilities. Organize periodic security trainings for employees. Send out short security bulletins or other forms of brief summaries about the latest information security challenges representative to your sector. Consider awarding special prizes to employees who strictly follow security policies and procedures. Implement increased monitoring of employee behaviour during sensitive periods e.g., re-assignment, decreased salary or during periods when the organization is laying people off. 
+
+\subsection{Contract termination} 
+
+When employees leave an organisation for retirement or transfer, they are increased risks that they will either be less adamant in the implementation of security policies, or they might even intentionally cause incidents. It is important to deny access to all compute and communication infrastructure, deactivate or delete all user profiles with a special care provided to any remote access capabilities (e.g., VPN), return company-owned devices (laptop, mobile), as well as keycards, keys and other artifacts allowing physical access to facilities. If there is an increased risk of incident, then a security guard can escort the ex employee(s) outside the facility. If the former employee possessed privileged access rights, then increased security monitoring of accessible devices should be considered.
+
+\section{Secure operations} \label{s:secure_ops}
+
+\subsection{Data protection}   
+
+The data inventory usually consists of physical documents of varying confidentiality levels (public, internal, top secret), electronic documents, electronic databases (schema + data), system configuration (JSON, XML, etc.), and binary files (exe, dll, so, etc.). In environments with applied artificial intelligence, we might additionally have machine learning models, training data, algorithm implementation and hyperparameters.
+
+\subsubsection{Data at rest} 
+The key security controls used to protect data at rest are encryption and strict access control. As it is common to store large volumes of data, it is necessary to use efficient algorithms e.g., Advanced Encryption Standard (AES) and similar. Strict access control often relies on multi-factor authentication and zero trust policies. Endpoint protection solutions (anti-malware, host-based intrusion detection) ensure that malware is detected in a timely manner and data integrity and availability is maintained. 
+
+\subsubsection{Data in transit} 
+The confidentiality of data passing through communication networks can be guaranteed by encrypting all communication channels with unique session keys issued to authenticated and authorised entities. Digital certificates are necessary to ensure that only trusted parties participate in communication. X.509 is a widely used digital certificate standard. The Public Key Infrastructure (PKI) ensures that digital certificates can be assigned to and verified on the open Internet. Both wired and wireless networks utilise AES for encrypting data in transit.
+
+\subsubsection{Data in use} 
+The concept of data in use in security is relatively new and entered the mainstream with the advent of cloud computing in which multiple parties of diverse geographic origin can share the same compute and storage infrastructure. Data in use protection solutions ensure that the data does not leak while it is stored in the RAM or the CPU of servers and other devices. Operating systems (OS) strictly separate the memory spaces of processes and randomise the location of both OS and process memory segments. Modern compute hardware used in data centers possess additional, hardware-enabled privacy features like Trusted Execution Environments (TEE) for both CPUs and the latest GPUs\footnote{\url{https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/}}. 
+
+\subsection{Data Privacy}
+
+Many years passed since the entering into force of the first data privacy regulations, among which the most visible was the 1974 Privacy Act in the USA \citep{usa_privacy_act1974}. Modern privacy regulations like General Data Protection Regulation (GDPR) of the European Union (EU) \citep{eu_gdpr_2018} define the subjects who own sensitive data, data controllers who collect and store data, as well as data processors who process data. A list of example data privacy controls which must be implemented by these actors are listed below:
+
+\begin{itemize}
+    \item \textbf{Data minimization.} Data collection must be minimal and aligned with the stated goals of the collector/processor.
+    \item \textbf{Data owner involvement.} The data owner must be able to check the data collected, ask for corrections or even deletion.
+    \item \textbf{Access control and audit.} The controller/processor strictly control and audit all access to personal data.
+    \item \textbf{Legal liability.} The legal representatives (e.g., Chief Executive Officer - CEO or Chief Information Security Officer - CISO) of the data controller and/or processor are legally liable to protect the personal data put into their hands.
+\end{itemize}
+
+According to the GDPR, in case there is a data breach and the investigation shows lack of vigilance on the data controller/processor side, they are liable to pay significant fines when the breach involves personal data of EU citizens. Personal data includes name, address and nationality, as well as any other data which can be linked directly or indirectly to a living individual. Sensitive personal data include genetic, biometric and health data, as well as personal data revealing racial and ethnic origin, political opinions, religious or ideological convictions or trade union membership.
+
+Personally identifiable information (PII) is an often used term in this context and it refers to information based on which an individual can be identified e.g., address and name.
+
+Data privacy is highly relevant in the context of AI security, as the training data often contains personal data. This is important, because we will show that training data can be extracted from artificial intelligence models under certain conditions, thereby leading to novel forms of personal data breaches.
+
+
+\subsection{Security Monitoring}
+
+Highly skilled attackers could operate undetected in compromised information systems for months after a successful attack and obtaining remote access up until the early 2020s and in most critical infrastructure sectors (energy, transportation, manufacturing and others). This time allowed attackers to move laterally and extend their attack beyond the primary affected hosts and/or networks. In certain cases this even allowed them to cause damage in the physical space during the time they maintained remote access to the compromised system(s). A widely publicized example of this was the cyberattack on the electricity distribution system operators (DSOs) in Kiev (Ukraine) in December 2015, in which the attackers switched off entire power lines via the Supervisory Control and Data Acquisition (SCADA), resulting in power outages at over 100,000 customers (SANS, 2016). An important feature of the attack was that the employees of several affected companies opened malicious email attachments thereby initiating the first steps of the attacks sometime in the summer of 2015, which was roughly six months prior to the actual cyber attacks. Unfortunately, the attackers were not identified during the several months of operations because the attacked electricity providers did not have adequate monitoring systems. The situation was similar in Europe and North America at the time, meaning that a similar attack could have been successful in those geographical regions as well.
+
+Based on the above example, it comes as no surprise that monitoring systems greatly assist in the early identification of cyberattacks similar to those described above as well as in the analysis of cybercriminals' activities. These systems collect data on significant events in a central location, for example, the successful or unsuccessful login of the system administrator to a computer, the installation of patches, the creation of backups (or failure to do so), the identification of malicious software or email content, and the many others, depending on sector, regulatory environment and organization-specific requirements.
+
+\subsubsection{Security Operations Center (SOC).} 
+Security Operations Centers (SOCs) are designed to provide 24/7 security monitoring of large critical infrastructures. SOC employees are familiar with the monitored system and can use monitoring data to respond to detected undesirable events, such as new malicious content in emails, suspicious administrator logins, or changes to binary files on specific computers. In large organizations, the Computer Security Incident Response Team (CSIRT) may also operate within or in conjunction with the SOC.
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/chap2_SOC.jpg}
+    \caption{Security Operations Center}
+%    \caption[Security Operations Center (SOC)]{Security Operations Center (SOC)\protect\footnotemark}
+    \label{fig:chap2_SOC}
+\end{figure}
+
+%\footnote{Image downloaded from Freepik, \url{https://www.freepik.com/free-vector/security-isometric-infographics_4279279.htm}}
+
+\subsubsection{Security Information and Event Management (SIEM).} 
+Security Information and Event Management (SIEM) systems enable the collection, analysis, visualization of critical events, as well as reporting, and notifications based on those data. SIEMs collect data using so-called probes (or collectors/connectors) installed on the monitored devices. On desktop and server computers, they might collect information from the operating system, anti-malware software, and other endpoint protection devices. In server rooms, they can collect data on physical access, environmental factors (e.g., temperature, humidity), as well as network infrastructure, e.g. switches, routers, IDS devices. SIEMs store the collected data for a given period of time. In some sectors, sectoral regulatory bodies (usually government agencies) regulate the expected minimum event retention period - for example in the energy sector, this is usually around a year. In addition to storage, SIEM also performs statistical and machine learning-based analysis of data and anomaly analysis, and display data and notifications in a graphical environment for operators.
+
+\subsection{Supply chain security}
+
+The supply chains of different data centres and their tenants can vary widely. Electricity and other utilities need to be available with high reliability, usually via redundant links to utility companies. Contractors working on the building(s) or the network and compute infrastructure within the centres need to be certified for the work carried out and pass additional, rigorous security checks. Hardware components can be bought from trusted partners with strict, tamper-proof production processes ensuring that no hardware Trojans are inserted. Similarly, all software componentes (e.g., operating systems, virtualisation platforms, application software, libraries) needs to be digitally signed, downloaded from trusted sources, scanned and verified in testing or staging environments before deployment.
+
+Data and artificial intelligence-specific supply chains include additional elements. The data used in the model-building (training) process must come from trusted sources and pass well-defined quality control processes. Similarly, pre-trained models and necessary libraries must originate from trusted partners verifiable via digital signatures.
+
+Although there were numerous supply chain attacks, one of the most publicised was the Solarwinds attack in 2020, during which government agencies in the USA deployed system monitoring sofware which included a backdoor inserted by a foreign actor after hacking into the systems of the producer \citep{solarwinds_attack_2020}. The steps of this (and other similar attacks) are outlined in Figure \ref{fig:chap2_Solarwinds}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics{figures/chap2_Solarwinds.png}
+    \caption{2020 United States federal government supply chain attack}
+%    \caption{2020 United States federal government supply chain attack\footnote{https://www.gao.gov/products/gao-22-104746}}
+    \label{fig:chap2_Solarwinds}
+\end{figure}
+
+\section{Risk management} \label{s:risk_management}
+
+The stated goal of the NIS2 Directive of the European Union is to protect critical infrastructures in the EU from cyber attacks \citep{eu_nis2_2022}. It mandates all EU Member States to pass laws and bylaws strictly defining and controlling the development and application of risk-aware security controls in all critical infrastructure sectors (e.g., finance, water, agriculture, telecommunications, transport, energy, space and others).
+
+The risk management process consists of the identification of the following: (1) key systems and their endpoints within the organisation which are critical to the core business or operations, (2) threats and threat sources which might adversely impact normal operation, (3) security vulnerabilities in information and other systems which might allow threat sources initial access to the system(s), (4) likelihood and (5) potential impact of all identified incidents \cite{bodungen_hacking_ics_2016}. This process is implemented iteratively until a desired risk-aware information security posture is reached (as depicted in figure \ref{fig:chap2_risk_management_process}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/chap2_risk_management_process.png}
+    \caption{The circular risk management process}
+    \label{fig:chap2_risk_management_process}
+\end{figure}
+
+Insurance companies have decades or even centuries of statistical data on natural disasters, car accidents and life insurance events. Based on this, they can estimate the likelihood of unwanted events and their impact quite accurately. In practice, this means that the probability of an accident affecting a given vehicle and the extent of material damage can be accurately estimated. Unfortunately, such statistics are (usually) not (yet) available in the field of cybersecurity, and therefore the risk assessment methods used in this area are approximate and significantly sector-dependent: the information systems of financial systems and banks are constantly attacked by criminals, while wastewater or waste management are generally less attractive targets. Risk assessment requires knowledge of the system under investigation, sector-specific (or industry-specic) knowledge, and appropriate risk analysis methods. Knowledge of industry trends and the system under investigation allows for the identification and description of theoretically feasible attacks.
+
+\subsection{Identifying systems and endpoints}
+
+The first phase of risk analysis is the identification and inventory of systems, assets and endpoints accessible in physical and/or electronic (cyber) space. The level of awareness of assets potentially affected by cybersecurity or other (e.g., failure) incidents tends to vary across industries, with government, military and financial institutions likely to have very detailed inventories, while fast-growing startups, or organizations in sectors like agriculture or manufacturing may have much less complete asset lists.
+
+Physical, electronic, and hybrid endpoints are particularly important as they are the means through which the system can be accessed and through which attackers (both in the physical and cyber space) can gain unauthorized access. All identified endpoints in the system should be listed and described in adequate detail.
+
+Physical endpoint descriptions typically include the following characteristics: identifier, description, geographic location (GPS), and level of security that provides access. In the case of electronic endpoints, in addition to the identifier, a unique MAC and IP address can be specified, as well as a description and type of the device, OS/firmware type, installed and enabled software, and upstream and downstream dependencies. For both physical and electronic endpoints, the expected maximum allowable recovery time in the event of a failure should be specified. This time is mandatory for assets that are particularly important for operations, e.g., transformers in electrical power systems or physical servers in cloud data centres.
+
+\subsection{Threats and threat sources}
+
+The threats which might result in some form of harm in data centres and similar facilities can be grouped in the below-listed categories:
+
+\begin{enumerate}
+
+    \item Environmental: Fire, flood, tornado, hurricane, corrosion, electromagnetic interference or flare.
+    \item Physical security: Different forms of spying (listening devices, unauthorized video monitoring), physical breaking and entering, device theft or loss, sabotage or physical (e.g., armed) attack.
+    \item Personnel security: Loss of critical employees (churn, pension, death), social engineering, extortion and ransom, corruption, identity theft, repudiation of actions.
+    \item Legal: Breach of laws, regulations or contracts.
+    \item Infrastructure providers: Loss of internet access or electricity, supply chain incidents, other critical services (e.g., input of materials in critical manufacturing sectors).
+    \item Data-related: Data leak, loss or manipulation. Accidental or malicious use of non-trustworthy information.
+    \item Hardware and software: Destruction of hardware or deletion of software, fake software or hardware (potentially with backdoors), mistakes during HW or SW use, authorisation failures.
+    \item Infrastructure: Unauthorised access and integrity breaches manipulated network flows, denial of service, malware.
+
+\end{enumerate}
+
+The types of usual threat sources are listed in Table \ref{tab:adv_types}. Nation states and malicious insiders are usually the most likely to succeed in an attack. Nation-state actors possess both the necessary technical skills and adequate funding to find and exploit vulnerabilities even remotely. Malicious insiders, on the other hand, usually have physical access to the protected zones and can plant unauthorized devices or leak critical credential information, significantly decreasing the complexity of attacks. Nevertheless, most attacks still materialise due to careless or poorly trained employees who fall prey to spear phishing or more sophisticated social engineering or even extortion.
+
+
+\noindent%
+
+\begin{table}
+\caption{Adversary types as defined in NISTIR 7628}
+\label{tab:adv_types}
+\begin{tabular} { |p{3cm}|p{8cm}| }
+
+  \hline
+  Adversary & Description (as defined in NIST IR 7628) \\  
+
+  \hline
+  Nation states & State-run, well organized and financed. Use foreign service agents to gather classified or critical information from countries viewed as hostile or as having an economic, military or a political advantage. \\
+  \hline
+  Hackers & A group of individuals (e.g., hackers, phreakers, crackers, trashers, and pirates) who attack networks and systems seeking to exploit the vulnerabilities in operating systems or other flaws. \\
+  \hline
+  Terrorists or cyberterrorists & Individuals or groups operating domestically or internationally who represent various terrorist or extremist groups that use violence or the threat of violence to incite fear with the intention of coercing or intimidating governments or societies into succumbing to their demands. \\
+  \hline
+  Organized crime & Coordinated criminal activities including cyber extortion, IP theft and other. Organized and well-financed criminal organization. \\
+  \hline
+  Other criminal elements & Other facets of the criminal community, which is normally not well organized or financed. Normally consists of a few individuals, or of one individual acting alone. \\
+  \hline
+  Industrial competitors & Foreign and domestic corporations operating in a competitive market and often engaged in the illegal gathering of information from competitors or foreign governments in the form of corporate espionage. \\
+  \hline
+  Disgruntled employees & Angry, dissatisfied individuals with the potential to inflict harm on critical infrastructures. This can represent an insider threat depending on the current state of the individual’s employment and access to the systems. \\
+  \hline
+  Careless or poorly trained employees* & Those users who, either through lack of training, lack of concern, or lack of attentiveness pose a threat to a CI. This is another example of an insider threat or adversary. \\
+  \hline  
+  
+\end{tabular}  
+\end{table}
+
+
+\subsection{Vulnerabilities}
+
+Vulnerabilities can be identified in people, processes or the technologies (PPT) used. Information about vulnerabilities in hardware, firmware, operating system, or software can be found in freely available sources on the Internet. Perhaps the most significant of these sources are the following:
+
+\begin{itemize}
+    \item National Vulnerability Database (NVD), https://nvd.nist.gov/
+    \item Common Vulnerabilities and Exposures (CVE), https://www.cve.org
+    \item Common Vulnerability Scoring System (CVSS), https://nvd.nist.gov/vuln-metrics/cvss
+\end{itemize}
+
+The CVE contains vulnerabilities and their descriptions. It provides defenders with timely information about the weaknesses of the technologies they use. The CVSS allows the severity classification of identified vulnerabilities.
+
+Unfortunately, these and similar databases are not only used by defenders, but also by cybercriminals, who either purchase software and scripts from others or develop them themselves to exploit newly identified vulnerabilities. Criminals also trade vulnerability descriptions on online marketplaces. Zero day vulnerabilities are usually the most valuable, as they are not yet known to the producer of the affected product, not listed in the CVE database and there is no patch or other tested workaround yet.
+
+\subsection{Likelihood}
+
+\noindent%
+\begin{table}
+\caption{The five levels of likelihood}
+\label{tab:chap2_likelihood}
+
+\begin{tblr}{
+  colspec={XX},
+  row{odd}={bg=white},  
+  row{1}={bg=gray,fg=white},
+}
+
+  \hline
+  Level & Description \\  
+  \hline
+  Very low & No known previous similar attacks. Cyberattackers are not motivated. No known vulnerabilities. \\
+  \hline
+  Low & Vulnerabilities exist that are difficult to attack. There were no such attacks within the sector/industry. Cybercriminals'' motivation is low. \\
+  \hline
+  Possible & Known vulnerabilities exist in the system. Cybercriminals motivation is moderate. There were similar attacks in other sectors. \\
+  \hline
+  Probable & There are known vulnerabilities, but attacks are difficult to automate. Cybercriminals are motivated. There were similar attacks in the sector/industry in the past. \\
+  \hline
+  Inevitable & There are known vulnerabilities without effective countermeasures and tools to effectively exploit them. Cybercriminals are highly motivated. \\
+  \hline
+  
+\end{tblr}  
+\end{table}
+
+We estimate the likelihood on a five-point scale based on the motivation of threat sources, known previous attacks within the sector/industry, and known vulnerabilities of the system under investigation. It describes how likely a successful attack is, not how often different cyber attackers will unsuccessfully probe the system with such an aim (e.g. several times a day, once a year). With this in mind, the probability levels are described in Table \ref{tab:chap2_likelihood}.
+
+It is important to add here that in the field of highly critical sectors, it must be assumed that there are always highly capable and motivated adversaries with the appropriate knowledge to launch a successful attack, i.e. those sectors must assume that a cyberattack is inevitable (its probability is 100\%) \citep{bochman_cyber_informed_2021}.
+
+\subsection{Impact}
+
+The impact of unwanted events is also sector-dependent. 
+
+\noindent%
+\begin{table}
+\caption{The five levels of impact}
+\label{tab:impact_five_levels}
+
+\begin{tblr}{
+  colspec={XX},
+  row{odd}={bg=white},  
+  row{1}={bg=gray,fg=white},
+}
+
+  \hline
+  Level & Description \\  
+  \hline
+  Negligible & Negligible material damage. No reputational damage. Can be dealt with in-house. No penalties. No environmental impact. No equipment damage. No human injury. \\
+  \hline
+  Low & Minor financial damage. Easily manageable reputational damage. \\
+  \hline
+  Medium & Uncomfortably high financial damage and/or penalties. Expensive external experts must be hired. Minimal environmental impact. \\
+  \hline
+  Major & Significant financial and reputational damage. Manageable penalties. Limited environmental impact. No human injury. Minor equipment damage. \\
+  \hline
+  Catastrophic & Human injury. Significant environmental impact. Major equipment damage. Financial damages or penalties that cannot be covered from own resources, leading to bankruptcy. Total loss of reputation. \\
+  \hline
+  
+\end{tblr}  
+\end{table}
+
+The impact of a theoretical attack on a water management system can be personal data breach, material damage, damaged equipment in the physical space, and in the worst case, the illness or even death of users consuming water. In addition to these impacts, system operators in regulated sectors must pay penalties if they fail to provide sufficient quality of service (e.g., unplanned electricity outage longer than 3 minutes), experts must be employed to prevent damage, there can be environmental impacts (e.g. sewage spills), and a successful attack can also have a negative impact on the reputation of the organization. Given these, Table \ref{tab:impact_five_levels} provides a guide to estimating the impact on a five-level scale.
+
+\subsection{Risk and risk matrix}
+
+As we showed, both likelihood and impact are usually assessed on qualitative levels consisting of three to (usually) five levels. The five levels of likelihood and impact can be combined into a so-called risk matrix as shown in figure \ref{fig:chap2_risk_matrix}.
+
+%\makebox[\textwidth] {
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap2_risk_matrix.png}
+    \caption{Risk matrix (impact and likelihood)}
+%    \caption{Risk matrix (impact and likelihood)\footnote{https://www.armsreliability.com/page/resources/blog/beyond-the-risk-matrix}}    
+    \label{fig:chap2_risk_matrix}
+\end{figure}
+%}
+
+The risk of identified adverse events can be determined using the risk matrix. The matrix is sector- and within them organization-dependent, i.e. it must be determined and updated for each organization during the risk management process based on the latest sectoral and general cybersecurity trends and known attacks. In large organizations with different business lines supported by separate information systems it might be a good idea to maintain different risk matrices for each sybsystem.
+
+After describing each identified potential incident (e.g., cyber attack) and estimating its probability and impact, the appropriate risk level can be read from the organizational (or subsystem) risk matrix. Knowledge of the risks allows for the targeted development and deployment of security controls (i.e., countermeasures) by selecting and tackling the highest risks first (located in the red and orange part of the risk matrix).
+
+\iffalse
+\fi
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}

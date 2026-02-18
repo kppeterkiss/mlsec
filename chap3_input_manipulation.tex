@@ -1,0 +1,103 @@
+\chapter{Input data manipulation} \label{chap:input_data_manipulation}
+%TODO: Add nad cite references based on Word doc
+
+The purpose of input data manipulation (OWASP ML01:2023) varies and depends primarily on the task performed by the attacked model and the information system that includes it. Researchers primarily focus on attacks against classification tasks, and within that, evasive attacks against image classification solutions.
+
+\section{Evading spam detection}
+
+The first such attacks against solutions known in the field of cybersecurity that also use machine learning were carried out against tools developed for filtering spam \cite{dalvi_adversarial_classification_2004}. Cybercriminals who make a living from spam have used various techniques to bypass filters, e.g. intentional typos, the use of similar characters, inserting text as images, or inserting large amounts of text that is invisible to the user reading the email but disrupts the classification model. The solutions of large IT service providers have developed a lot in this area in the previous period and spam that gets through the filters is orders of magnitude less of a problem than in the early 2000s.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap3_text_mining_6phase.png}
+    \caption{Text mining phases}
+    \label{fig:chap3_text_mining_6phase}
+\end{figure}
+
+Spam filters are binary text classification systems with two possible decisions: spam or ham (harmless content). Modern text mining solutions usually operate in the phases shown in Figure \ref{fig:chap3_text_mining_6phase}. The adversaries which intend to mislead spam filters can and do attempt to target one or more of these phases. Proper language detection can be avoided by mixing text in multiple languages. Sentence breaking algorithms can be misled by inserting unnecessary punctuation marks, sometimes even in the middle of words (e.g., f!lter instead of filter). The misuse of punctuation marks and spaces can similarly mislead tokenization algorithms as well. If any of the first three text mining phases results in errors or partial solutions, then subsequent phases will not execute properly, as it might not be possible to properly reduce words to their base or dictionary form in lemmatization or remove stop words. The resulting vector encodings of the original text might have entirely different meanings and might lead to classification errors. Google developed the RETVec multi-language anti-spam tool\footnote{https://github.com/google-research/retvec} which solves most of the here-listed challenges and is able to properly vectorizes text with all the above tricks deployed. It supports over 100 languages and is resilient to homoglyphs (similar characters), intentional typos, deletion or insertion of characters and LEET speak (e.g., T3nn1sP!4y3r).
+
+The criminals pushing spam campaigns usually observe the AI-based spam filter as a black box and attempt to mislead the classification engines without exact knowledge of the underlying AI models, training data, training algorithms and/or hyperparameters.
+
+% TODO: Consider adding text-analysis-based malware detection here as well - maybe a subsection
+
+\section{Evading image classification}
+
+Since the mid-2010s, researchers and the public interested in AI security have been increasingly interested in the misdirection of various image recognition solutions. Among these, we highlight the misdirection of smart cars recognizing traffic signs by labeling the signs in physical space, and the addition of noise invisible to the human eye to images containing various objects and animals, which causes otherwise excellent image recognition solutions to make completely wrong decisions. Attacks can be roughly grouped according to whether (1) the object of classification is modified in physical or electronic space, and (2) the modification is visible or invisible to the human eye (visible label vs invisible noise). In the field of image modification, 1-pixel attacks are interesting, which modify only one pixel in the image and thereby succeed in misleading the AI model.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap3_input_manip_01_stop_and_panda.png}
+    \caption{Visible vs invisible evasion attack \cite{kotyan_adv_attacks_2023}.}
+    \label{fig:chap3_input_manip_01_stop_and_panda}
+\end{figure}
+
+%TODO: Describe gradient estimation here
+
+\subsection{White-box attacks}
+
+In white-box attacks the attackers possess extensive knowledge about the target AI-enabled system. They either hacked into the system hosting the AI model or they obtained insider access. Alternatively, the model and/or training data are open-source and thereby accessible to the attacker.
+
+These information allow the adversary to craft effective input perturbations which cause the model to make incorrect decisions (e.g., misclassify an image with high confidence), even if the modifications are imperceptible to human observers or automated input manipulation detection solutions alike. Attackers calculate the gradient of the model's loss function with respect to the input image, which allows them to determine the direction in which to alter input data (e.g., pixels in images) to maximize the classification error for a given input \citep{goodfellow2015explaining}. The direct feedback mechanism measured via the gradient allows for the generation of minimal perturbations which efficiently mislead the AI model.
+
+We hereby provide a non-exhaustive list of promising white-box attack methods against image classification systems:
+
+\begin{itemize}
+   \item The single-step \textbf{Fast Gradient Sign Method (FGSM)} was introduced by \cite{goodfellow2015explaining}. It computes the gradient of the loss with respect to the input image and then adds a small perturbation to each pixel based on the sign of that gradient, moving the input in the direction that maximally increases the loss. It is computationally efficient but often generates perceptible perturbations.
+
+   \item The \textbf{Basic Iterative Method (BIM) / Iterative FGSM (I-FGSM)} is an extension of FGSM. It applies the FGSM step iteratively with a smaller perturbation at each step, projecting the perturbed image back into an $\epsilon$-ball (a defined boundary for the perturbation magnitude) after each iteration \citep{kurakin_adversarial_2018}. This iterative process typically yields stronger adversarial examples which are often less perceptible to the human eye. Projected Gradient Descent (PGD) performs the same steps but initializes to a random point in the ball of interest \citep{madry_dnn_adv_resistant_2017}.
+
+   \item The \textbf{Carlini \& Wagner (C\&W)} attack is known for generating highly effective and minimal adversarial perturbations. Unlike gradient-sign-based methods, it uses optimization to find the smallest possible perturbation that leads to misclassification, often resulting in imperceptible changes \citep{carlini_nn_robustness_eval_2017}.
+\end{itemize}
+
+\subsection{Black-box attacks}
+
+Black-box attacks are similar to real-world scenarios in which the attackers only interact with the model via its API or observed outputs (\cite{goodfellow2015explaining}). They do not have access to the model architecture and parameters, neither the training data. To make matters worse (for the attacker), the interface via which they communicate with the target AI model usually is rate-limited, which means that the number of queries submitted in a unit of time is limited. The fundamental challenge in black-box attacks is the absence of gradient information, which is central to white-box methods discussed above.
+
+Even in such constrained environments, attackers usually possess limited knowledge about the model architecture, training algorithm and hyperparameters, based on which they might be able to identify optimal adversarial data by generating and testing a small number of samples.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/chap3_black-box_taxonomy_csur-2023-0434-f02.jpg}
+    \caption{Taxonomy of black-box adversarial attack against image classification models \cite{badjie_image_classification_attacks_review_2024}.}
+    \label{fig:chap3_black_box_taxonomy}
+\end{figure}
+
+Black-box attackers' approaches fall into the following main categories: transferability and query-based attacks. Figure \ref{fig:chap3_black_box_taxonomy} illustrates a recent, non-exhaustive and somewhat similar taxonomy of black-box adversarial attacks.
+
+\subsubsection{Attack transferability}
+
+The goal of a transfer attack is to generate and test malicious input data on a (substitute or shadow) model developed or acquired by the attacker and then transfer the tested adversarial data and use it against a target model. It may seem a bit surprising that such attacks can work at all, especially in a black-box attack in which the attacker has no access to either the training data or the target AI model itself, but various researchers have demonstrated the feasibility of these attacks on different models (\cite{demontis_adversarial_transferability_2019}; \cite{yin_transferability_2023}).
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/chap3_input_manip_02_transferability.jpg}
+    \caption{Transferability of manipulated input data \cite{yin_transferability_2023}.}
+    \label{fig:chap3_input_manip_02_transferability}
+\end{figure}
+
+The transfer attack can be explained by the similarities of the training sets and the general weaknesses of AI models. If two AI models with similar architectures are trained using similar training sets, they are expected to learn similar decision planes and make incorrect decisions along them on similar adversarial patterns. A general weakness is when the model identifies and learns features or relationships (correlations) between them as important during training that are otherwise not significant in the given domain. Sophisticated attackers can base their input data manipulation strategies on their knowledge about such suboptimal learned patterns.
+
+\subsubsection{Query-based Attacks}
+
+Query-based attacks iteratively perturb inputs and query the target AI model for its decisions (e.g., predictions). By observing changes in confidence scores or predicted labels, the attacker might infer information about the model's decision boundaries. These attacks are usually computationally expensive due to the large number of queries required, and as such they tend to trigger rate limiting-based detection mechanisms.
+
+The general steps performed by the query-based attacker are usually the following:
+
+\begin{itemize}
+    \item (Optional, if highly skilled attacker) Design attack.
+    \item Generate limited set of input data samples which maximize knowledge gain about the model once submitted to the model and paired with the resulting outputs.
+    \item Submit adversarial samples to the target AI model .
+    \item Collect and analyze outputs. Observe confidence scores and other model performance indicators to further optimize adversarial sample generation.
+    \item Generate adversarial samples which will be utilized to reach the attackers' objectives on the target model.
+\end{itemize}
+
+In optimization-based query attacks the attacker's objective is to identify the smallest possible perturbation which could lead to incorrect AI model decisions. The attacker iteratively modifies the input in order to maximize the model’s standard loss or reduce its confidence in the actual class while ensuring that the alteration remains undetectable. 
+
+Decision boundary attacks (DBA) exploit machine learning models by finding tiny changes (perturbations) to an input that push it across the model's decision boundary, causing misclassification. Such attacks rely only on the known model output (label) and can be deployed without gradient access \citep{JIN2022_Decision_boundary}.
+
+Query-based attacks focusing on gradient estimation approximate the gradient of the loss function with respect to the input, based on the model's output scores\footnote{https://apxml.com/courses/adversarial-machine-learning/chapter-2-advanced-evasion-attacks/score-based-attack-techniques}. The steepest ascent of the loss function can be approximated by querying the model with nearby points i.e., inputs corresponding to nearby points in the input space\citep{li2021_nonlinear_gradient_estimation}. The assessed points can be selected by exhaustively checking each neighboring point along each dimension of the input space, or by a guided random search. Gradient estimation approaches often require fewer queries to identify an initial adversarial example compared to decision boundary approaches.
+
+\bibliographystyle{apalike}
+
+%\bibliographystyle{splncs04}
+\bibliography{bibliography}
